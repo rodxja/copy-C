@@ -51,33 +51,48 @@ void readDirectory(const char *sourceDir, const char *destDir)
         exit(EXIT_FAILURE);
     }
 
-    // filesBuffer = malloc(100 * sizeof(FileInfo));
-
     while ((entry = readdir(dir)) != NULL)
-    { // Iterate over the entries in the directory
+    { 
         char sourcePath[MAX_NAME_LENGTH];
         char destPath[MAX_NAME_LENGTH];
 
-        FileInfo *fileInfo = malloc(sizeof(FileInfo));
+        // Skip the current directory and the parent directory
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        {
+            continue;
+        }
 
         // Create the full path for the source and destination files
         snprintf(sourcePath, sizeof(sourcePath), "%s/%s", sourceDir, entry->d_name);
         snprintf(destPath, sizeof(destPath), "%s/%s", destDir, entry->d_name);
 
         // Fill the buffer with the file information
-        if (stat(sourcePath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+        if (stat(sourcePath, &statbuf) == 0)
         {
-            strcpy(fileInfo->origin, sourcePath);
-            strcpy(fileInfo->destination, destPath);
+            // Validate if the entry is a file
+            if (S_ISREG(statbuf.st_mode))
+            {
+                FileInfo *fileInfo = malloc(sizeof(FileInfo)); // Memory allocation for the struct
+                strcpy(fileInfo->origin, sourcePath);
+                strcpy(fileInfo->destination, destPath);
+                fileInfo->size = statbuf.st_size;
 
-            fileInfo->size = statbuf.st_size;
+                writeFileInfo(FILE_INFO_BUFFER, fileInfo);
+            }
+            // Validate if the entry is a directory
+            else if (S_ISDIR(statbuf.st_mode))
+            {
+                // Create the directory in the destination path
+                mkdir(destPath, 0755);
 
-            writeFileInfo(FILE_INFO_BUFFER, fileInfo);
+                // Recursive call to read the directory
+                readDirectory(sourcePath, destPath);
+            }
         }
     }
-
-    closedir(dir);
+    closedir(dir); 
 }
+
 
 /*
 LogInfo stores the information of a file that was copied
