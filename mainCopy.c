@@ -108,15 +108,14 @@ that will be increased by 1 each time a struct is read or written
 typedef struct
 {
     pthread_mutex_t mutex;
+    pthread_cond_t not_full;
+    pthread_cond_t not_empty;
+
     LogInfo *buffer; // Dynamic buffer for structs
     int readIndex;
     int writeIndex;
 
 } LogInfoBuffer;
-
-// TODO : Implement the following in BOTH FileInfoBuffer and FileNameBuffer
-// 1. CONTROL THE ACCESS TO THE BUFFER SO AS NOT TO WRITE OVER A FILE INTO THAT WAS NOT READ YET
-// 2. CONTROL THE WRITE TO WAIT UNTIL THERE IS SPACE IN THE BUFFER
 
 /*
 newLogInfoBuffer creates a new FileInfoBuffer struct and initializes it
@@ -124,6 +123,9 @@ newLogInfoBuffer creates a new FileInfoBuffer struct and initializes it
 LogInfoBuffer *newLogInfoBuffer()
 {
     LogInfoBuffer *logInfoBuffer = malloc(sizeof(FileInfoBuffer));
+    pthread_mutex_init(&logInfoBuffer->mutex, NULL);
+    pthread_cond_init(&logInfoBuffer->not_full, NULL);
+    pthread_cond_init(&logInfoBuffer->not_empty, NULL);
     logInfoBuffer->buffer = malloc(BUFFER_SIZE * sizeof(FileInfo));
     logInfoBuffer->readIndex = 0;
     logInfoBuffer->writeIndex = 0;
@@ -136,6 +138,9 @@ freeFileInfoBuffer frees the memory allocated for the FileInfoBuffer struct
 void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer)
 {
     free(logInfoBuffer->buffer);
+    pthread_mutex_destroy(&logInfoBuffer->mutex);
+    pthread_cond_destroy(&logInfoBuffer->not_full);
+    pthread_cond_destroy(&logInfoBuffer->not_empty);
     free(logInfoBuffer);
 }
 
@@ -145,10 +150,18 @@ writeFileInfo writes a FileInfo struct to the buffer
 void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo) // !! it receives a pointer
 {
     pthread_mutex_lock(&logInfoBuffer->mutex); // Lock the mutex
+
+    // Wait until there is space in the buffer
+    while (((logInfoBuffer->writeIndex + 1) % BUFFER_SIZE) == logInfoBuffer->readIndex)
+    {
+        pthread_cond_wait(&logInfoBuffer->not_full, &logInfoBuffer->mutex);
+    }
     // !!! logInfo is being dereferenced
     logInfoBuffer->buffer[logInfoBuffer->writeIndex] = *logInfo;               // Write the struct to the buffer,
     logInfoBuffer->writeIndex = (logInfoBuffer->writeIndex + 1) % BUFFER_SIZE; // Increase the write index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
-    pthread_mutex_unlock(&logInfoBuffer->mutex);                               // Unlock the mutex
+
+    pthread_cond_signal(&logInfoBuffer->not_empty); // Signal that a new item has been written
+    pthread_mutex_unlock(&logInfoBuffer->mutex);    // Unlock the mutex
 }
 
 /*
@@ -156,10 +169,17 @@ readFileInfo reads a FileInfo struct from the buffer
 */
 LogInfo *readFileInfo(LogInfoBuffer *logInfoBuffer)
 {
-    pthread_mutex_lock(&logInfoBuffer->mutex);                               // Lock the mutex
+    pthread_mutex_lock(&logInfoBuffer->mutex); // Lock the mutex
+    while (logInfoBuffer->writeIndex == logInfoBuffer->readIndex)
+    {
+        pthread_cond_wait(&logInfoBuffer->not_empty, &logInfoBuffer->mutex);
+    }
     LogInfo *logInfo = &logInfoBuffer->buffer[logInfoBuffer->readIndex];     // Read the struct from the buffer
     logInfoBuffer->readIndex = (logInfoBuffer->readIndex + 1) % BUFFER_SIZE; // Increase the read index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
-    pthread_mutex_unlock(&logInfoBuffer->mutex);                             // Unlock the mutex
+
+    pthread_cond_signal(&logInfoBuffer->not_full); // Signal that a new item has been read
+
+    pthread_mutex_unlock(&logInfoBuffer->mutex); // Unlock the mutex
     return logInfo;
 }
 
@@ -172,6 +192,8 @@ that will be increased by 1 each time a struct is read or written
 typedef struct
 {
     pthread_mutex_t mutex;
+    pthread_cond_t not_full;
+    pthread_cond_t not_empty;
     FileInfo *buffer; // Dynamic buffer for strings
     int readIndex;
     int writeIndex;
@@ -182,6 +204,8 @@ FileInfoBuffer *newFileNameBuffer()
 {
     FileInfoBuffer *fileInfoBuffer = malloc(sizeof(FileInfoBuffer));
     pthread_mutex_init(&fileInfoBuffer->mutex, NULL);
+    pthread_cond_init(&fileInfoBuffer->not_full, NULL);
+    pthread_cond_init(&fileInfoBuffer->not_empty, NULL);
     fileInfoBuffer->buffer = malloc(BUFFER_SIZE * sizeof(FileInfo));
     fileInfoBuffer->readIndex = 0;
     fileInfoBuffer->writeIndex = 0;
@@ -191,22 +215,35 @@ FileInfoBuffer *newFileNameBuffer()
 void freeFFileInfoBuffer(FileInfoBuffer *fileInfoBuffer)
 {
     free(fileInfoBuffer->buffer);
+    pthread_mutex_destroy(&fileInfoBuffer->mutex);
+    pthread_cond_destroy(&fileInfoBuffer->not_full);
+    pthread_cond_destroy(&fileInfoBuffer->not_empty);
     free(fileInfoBuffer);
 }
 
 void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
+    while (((fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE) == fileInfoBuffer->readIndex)
+    {
+        pthread_cond_wait(&fileInfoBuffer->not_full, &fileInfoBuffer->mutex);
+    }
     fileInfoBuffer->buffer[fileInfoBuffer->writeIndex] = *fileInfo;
     fileInfoBuffer->writeIndex = (fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE;
+    pthread_cond_signal(&fileInfoBuffer->not_empty);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
 }
 
 FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
+    while (fileInfoBuffer->writeIndex == fileInfoBuffer->readIndex)
+    {
+        pthread_cond_wait(&fileInfoBuffer->not_empty, &fileInfoBuffer->mutex);
+    }
     FileInfo *fileInfo = &fileInfoBuffer->buffer[fileInfoBuffer->readIndex];
     fileInfoBuffer->readIndex = (fileInfoBuffer->readIndex + 1) % BUFFER_SIZE;
+    pthread_cond_signal(&fileInfoBuffer->not_full);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
     return fileInfo;
 }
