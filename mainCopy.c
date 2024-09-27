@@ -20,11 +20,13 @@
 int keepCopying = 1;
 
 // BUFFERS
-FileInfoBuffer *fileInfoBuffer;
-FileNameBuffer *fileNameBuffer;
+FileInfoBuffer *FILE_INFO_BUFFER;
+LogInfoBuffer *LOG_INFO_BUFFER;
 
-char *destinationDir;
-
+/*
+FileInfo stores the information of a file to be copied
+It has the origin path, the destination path and the size in bytes
+*/
 typedef struct
 {
     char origin[MAX_NAME_LENGTH];      // Field to store the origin path
@@ -32,13 +34,9 @@ typedef struct
     size_t size;                       // Field to store the size in bytes
 } FileInfo;
 
-pthread_mutex_t fileInfoMutex = PTHREAD_MUTEX_INITIALIZER;
-FileInfo *filesBuffer;
-int fileInfoCount = 0;
-int filesCopied = 0;
-int FileIndex = 0; // Index to keep track of the file being copied,
-                   // important so that the threads don't copy the same file
-
+/*
+readDirectory reads the files in a directory and stores the information in the FILE_INFO_BUFFER
+*/
 void readDirectory(const char *sourceDir, const char *destDir)
 {
     DIR *dir;
@@ -53,12 +51,14 @@ void readDirectory(const char *sourceDir, const char *destDir)
         exit(EXIT_FAILURE);
     }
 
-    filesBuffer = malloc(100 * sizeof(FileInfo));
+    // filesBuffer = malloc(100 * sizeof(FileInfo));
 
     while ((entry = readdir(dir)) != NULL)
     { // Iterate over the entries in the directory
         char sourcePath[MAX_NAME_LENGTH];
         char destPath[MAX_NAME_LENGTH];
+
+        FileInfo *fileInfo = malloc(sizeof(FileInfo));
 
         // Create the full path for the source and destination files
         snprintf(sourcePath, sizeof(sourcePath), "%s/%s", sourceDir, entry->d_name);
@@ -67,26 +67,32 @@ void readDirectory(const char *sourceDir, const char *destDir)
         // Fill the buffer with the file information
         if (stat(sourcePath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
         {
-            strcpy(filesBuffer[fileInfoCount].origin, sourcePath);
-            strcpy(filesBuffer[fileInfoCount].destination, destPath);
-            filesBuffer[fileInfoCount].size = statbuf.st_size;
-            fileInfoCount++;
+            strcpy(fileInfo->origin, sourcePath);
+            strcpy(fileInfo->destination, destPath);
+
+            fileInfo->size = statbuf.st_size;
+
+            writeFileInfo(FILE_INFO_BUFFER, fileInfo);
         }
     }
 
     closedir(dir);
 }
 
+/*
+LogInfo stores the information of a file that was copied
+It has the name, the size in bytes and the duration in miliseconds
+*/
 typedef struct
 {
     char name[MAX_NAME_LENGTH]; // Field to store the name
     size_t size;                // In bytes
     double duration;            // In miliseconds
-} FileInfo;
+} LogInfo;
 
-FileInfo *newFileInfo(/* char *name, size_t size, time_t timestamp */)
+LogInfo *newLogInfo(/* char *name, size_t size, time_t timestamp */)
 {
-    FileInfo *fileInfo = malloc(sizeof(FileInfo));
+    LogInfo *fileInfo = malloc(sizeof(LogInfo));
     /* snprintf(fileInfo->name, MAX_NAME_LENGTH, "%s", name);
     fileInfo->size = size;
     fileInfo->timestamp = timestamp; */
@@ -102,109 +108,107 @@ that will be increased by 1 each time a struct is read or written
 typedef struct
 {
     pthread_mutex_t mutex;
-    FileInfo *buffer; // Dynamic buffer for structs
+    LogInfo *buffer; // Dynamic buffer for structs
     int readIndex;
     int writeIndex;
 
-} FileInfoBuffer;
+} LogInfoBuffer;
 
 // TODO : Implement the following in BOTH FileInfoBuffer and FileNameBuffer
 // 1. CONTROL THE ACCESS TO THE BUFFER SO AS NOT TO WRITE OVER A FILE INTO THAT WAS NOT READ YET
 // 2. CONTROL THE WRITE TO WAIT UNTIL THERE IS SPACE IN THE BUFFER
 
 /*
-newFileInfoBuffer creates a new FileInfoBuffer struct and initializes it
+newLogInfoBuffer creates a new FileInfoBuffer struct and initializes it
 */
-FileInfoBuffer *newFileInfoBuffer()
+LogInfoBuffer *newLogInfoBuffer()
 {
-    FileInfoBuffer *buffer = malloc(sizeof(FileInfoBuffer));
-    pthread_mutex_init(&buffer->mutex, NULL);
-    buffer->buffer = malloc(BUFFER_SIZE * sizeof(FileInfo));
-    buffer->readIndex = 0;
-    buffer->writeIndex = 0;
-    return buffer;
+    LogInfoBuffer *logInfoBuffer = malloc(sizeof(FileInfoBuffer));
+    logInfoBuffer->buffer = malloc(BUFFER_SIZE * sizeof(FileInfo));
+    logInfoBuffer->readIndex = 0;
+    logInfoBuffer->writeIndex = 0;
+    return logInfoBuffer;
 }
 
 /*
 freeFileInfoBuffer frees the memory allocated for the FileInfoBuffer struct
 */
-void freeFileInfoBuffer(FileInfoBuffer *buffer)
+void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer)
 {
-    free(buffer->buffer);
-    free(buffer);
+    free(logInfoBuffer->buffer);
+    free(logInfoBuffer);
 }
 
 /*
 writeFileInfo writes a FileInfo struct to the buffer
 */
-void writeFileInfo(FileInfoBuffer *buffer, FileInfo *fileInfo)
+void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo) // !! it receives a pointer
 {
-    pthread_mutex_lock(&buffer->mutex);                          // Lock the mutex
-    buffer->buffer[buffer->writeIndex] = *fileInfo;              // Write the struct to the buffer
-    buffer->writeIndex = (buffer->writeIndex + 1) % BUFFER_SIZE; // Increase the write index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
-    pthread_mutex_unlock(&buffer->mutex);                        // Unlock the mutex
+    pthread_mutex_lock(&logInfoBuffer->mutex); // Lock the mutex
+    // !!! logInfo is being dereferenced
+    logInfoBuffer->buffer[logInfoBuffer->writeIndex] = *logInfo;               // Write the struct to the buffer,
+    logInfoBuffer->writeIndex = (logInfoBuffer->writeIndex + 1) % BUFFER_SIZE; // Increase the write index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
+    pthread_mutex_unlock(&logInfoBuffer->mutex);                               // Unlock the mutex
 }
 
 /*
 readFileInfo reads a FileInfo struct from the buffer
 */
-FileInfo *readFileInfo(FileInfoBuffer *buffer)
+LogInfo *readFileInfo(LogInfoBuffer *logInfoBuffer)
 {
-    pthread_mutex_lock(&buffer->mutex);                        // Lock the mutex
-    FileInfo *fileInfo = &buffer->buffer[buffer->readIndex];   // Read the struct from the buffer
-    buffer->readIndex = (buffer->readIndex + 1) % BUFFER_SIZE; // Increase the read index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
-    pthread_mutex_unlock(&buffer->mutex);                      // Unlock the mutex
-    return fileInfo;
+    pthread_mutex_lock(&logInfoBuffer->mutex);                               // Lock the mutex
+    LogInfo *logInfo = &logInfoBuffer->buffer[logInfoBuffer->readIndex];     // Read the struct from the buffer
+    logInfoBuffer->readIndex = (logInfoBuffer->readIndex + 1) % BUFFER_SIZE; // Increase the read index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
+    pthread_mutex_unlock(&logInfoBuffer->mutex);                             // Unlock the mutex
+    return logInfo;
 }
 
+/*
+FileInfoBuffer is the buffer that will store the FileInfo structs
+It contains a mutex to control the access to the buffer, the buffer itself
+and two indexes, one for reading and one for writing
+that will be increased by 1 each time a struct is read or written
+*/
 typedef struct
 {
     pthread_mutex_t mutex;
-    char **stringsBuffer; // Dynamic buffer for strings
+    FileInfo *buffer; // Dynamic buffer for strings
     int readIndex;
     int writeIndex;
 
-} FileNameBuffer;
+} FileInfoBuffer;
 
-FileNameBuffer *newFileNameBuffer()
+FileInfoBuffer *newFileNameBuffer()
 {
-    FileNameBuffer *buffer = malloc(sizeof(FileNameBuffer));
-    pthread_mutex_init(&buffer->mutex, NULL);
-    buffer->stringsBuffer = malloc(BUFFER_SIZE * sizeof(char *));
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-        buffer->stringsBuffer[i] = malloc(MAX_NAME_LENGTH * sizeof(char));
-    }
-    buffer->readIndex = 0;
-    buffer->writeIndex = 0;
-    return buffer;
+    FileInfoBuffer *fileInfoBuffer = malloc(sizeof(FileInfoBuffer));
+    pthread_mutex_init(&fileInfoBuffer->mutex, NULL);
+    fileInfoBuffer->buffer = malloc(BUFFER_SIZE * sizeof(FileInfo));
+    fileInfoBuffer->readIndex = 0;
+    fileInfoBuffer->writeIndex = 0;
+    return fileInfoBuffer;
 }
 
-void freeFileNameBuffer(FileNameBuffer *buffer)
+void freeFFileInfoBuffer(FileInfoBuffer *fileInfoBuffer)
 {
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-        free(buffer->stringsBuffer[i]);
-    }
-    free(buffer->stringsBuffer);
-    free(buffer);
+    free(fileInfoBuffer->buffer);
+    free(fileInfoBuffer);
 }
 
-void writeFileName(FileNameBuffer *buffer, char *fileName)
+void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
 {
-    pthread_mutex_lock(&buffer->mutex);
-    snprintf(buffer->stringsBuffer[buffer->writeIndex], MAX_NAME_LENGTH, "%s", fileName);
-    buffer->writeIndex = (buffer->writeIndex + 1) % BUFFER_SIZE;
-    pthread_mutex_unlock(&buffer->mutex);
+    pthread_mutex_lock(&fileInfoBuffer->mutex);
+    fileInfoBuffer->buffer[fileInfoBuffer->writeIndex] = *fileInfo;
+    fileInfoBuffer->writeIndex = (fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE;
+    pthread_mutex_unlock(&fileInfoBuffer->mutex);
 }
 
-char *readFileName(FileNameBuffer *buffer)
+FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 {
-    pthread_mutex_lock(&buffer->mutex);
-    char *fileName = buffer->stringsBuffer[buffer->readIndex];
-    buffer->readIndex = (buffer->readIndex + 1) % BUFFER_SIZE;
-    pthread_mutex_unlock(&buffer->mutex);
-    return fileName;
+    pthread_mutex_lock(&fileInfoBuffer->mutex);
+    FileInfo *fileInfo = &fileInfoBuffer->buffer[fileInfoBuffer->readIndex];
+    fileInfoBuffer->readIndex = (fileInfoBuffer->readIndex + 1) % BUFFER_SIZE;
+    pthread_mutex_unlock(&fileInfoBuffer->mutex);
+    return fileInfo;
 }
 
 void *copyFiles(void *arg)
@@ -213,31 +217,32 @@ void *copyFiles(void *arg)
 
     while (keepCopying)
     {
-        if (fileNameBuffer == NULL)
+        if (FILE_INFO_BUFFER == NULL)
         {
             printf("Error: fileNameBuffer is null. Thread '#%ld' is going to stop.\n", threadNum);
             return;
         }
 
-        FileInfo *fileInfo = newFileInfo();
+        LogInfo *logInfo = newLogInfo();
 
-        char *fileName = readFileName(fileNameBuffer);
+        FileInfo *fileInfo = readFileName(FILE_INFO_BUFFER);
+        // !!! i am not using size
 
-        snprintf(fileInfo->name, MAX_NAME_LENGTH, "%s", fileName);
+        snprintf(logInfo->name, MAX_NAME_LENGTH, "%s", fileInfo->destination);
 
         // Copy the file
-        int sourceFD = open(fileName, O_RDONLY);
+        int sourceFD = open(fileInfo->origin, O_RDONLY);
         if (sourceFD == -1)
         {
-            printf("Error: opening source file '%s' on thread '#%ld'.\n", fileName, threadNum);
+            printf("Error: opening source file '%s' on thread '#%ld'.\n", fileInfo->origin, threadNum);
             continue;
         }
 
         // ??? I THINK THIS DESTINATION SHOULD CHANGE
-        int destFD = open(destinationDir, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        int destFD = open(fileInfo->destination, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (destFD == -1)
         {
-            perror("Error opening destination file");
+            perror("Error opening destination file"); // TODO : extend print
             close(sourceFD);
             continue;
         }
@@ -250,7 +255,7 @@ void *copyFiles(void *arg)
             fileInfo->size += bytesRead;
             if (write(destFD, buffer, bytesRead) != bytesRead)
             {
-                perror("Error writing to destination file");
+                perror("Error writing to destination file"); // TODO : extend print
                 close(sourceFD);
                 close(destFD);
                 break;
@@ -258,13 +263,13 @@ void *copyFiles(void *arg)
         }
         clock_t end = clock();
 
-        fileInfo->duration = (double)(end - start) * 1000 / CLOCKS_PER_SEC;
+        logInfo->duration = (double)(end - start) * 1000 / CLOCKS_PER_SEC;
 
         close(sourceFD);
         close(destFD);
 
         // Lock the mutex to increment the filesCopied counter
-        writeFileInfo(fileInfoBuffer, fileInfo);
+        writeLogInfo(LOG_INFO_BUFFER, logInfo);
     }
 
     return NULL;
@@ -280,8 +285,6 @@ int main(int argc, char *argv[])
 
     const char *sourceDir = argv[1]; // Source directory where are contained the files to copy
     const char *destDir = argv[2];   // Destination directory where the files will be copied
-
-    destinationDir = destDir;
 
     readDirectory(sourceDir, destDir);
 
@@ -300,10 +303,6 @@ int main(int argc, char *argv[])
     {
         pthread_join(threads[i], NULL);
     }
-
-    printf("Files copied: %d\n", filesCopied);
-
-    free(filesBuffer);
 
     return 0;
 }
