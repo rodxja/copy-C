@@ -1,0 +1,45 @@
+#ifndef LOGINFO_H
+#define LOGINFO_H
+
+#include <pthread.h>
+#include <time.h>
+#include <stdlib.h>
+#include "macros.h"
+
+/*
+LogInfo stores the information of a file that was copied
+It has the name, the size in bytes and the duration in miliseconds
+*/
+typedef struct
+{
+    char name[MAX_NAME_LENGTH]; // Field to store the name
+    size_t size;                // In bytes
+    double duration;            // In miliseconds
+} LogInfo;
+
+/*
+FileInfoBuffer is the buffer that will store the FileInfo structs
+It contains a mutex to control the access to the buffer, the buffer itself
+and two indexes, one for reading and one for writing
+that will be increased by 1 each time a struct is read or written
+*/
+typedef struct
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t not_full;
+    pthread_cond_t not_empty;
+
+    LogInfo *buffer; // Dynamic buffer for structs
+    int readIndex;
+    int writeIndex;
+
+} LogInfoBuffer;
+
+// Function prototypes
+LogInfo *newLogInfo();
+LogInfoBuffer *newLogInfoBuffer();
+void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
+void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
+LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
+
+#endif // LOGINFO_H
