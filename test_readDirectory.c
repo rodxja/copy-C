@@ -6,16 +6,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include "functions.h"
 #include "fileinfo.h"
 
-
-// Mock para FILE_INFO_BUFFER
-FileInfoBuffer *FILE_INFO_BUFFER;
-
-void writeFileInfo(FileInfoBuffer *buffer, FileInfo *fileInfo) {
-    // Aquí simplemente imprimimos la información del archivo para verificar manualmente los resultados
-    printf("Archivo origen: %s, Archivo destino: %s, Tamaño: %ld bytes\n", fileInfo->origin, fileInfo->destination, fileInfo->size);
-}
 
 // Unit Test para la función readDirectory
 void test_readDirectory() {
@@ -41,19 +34,39 @@ void test_readDirectory() {
     write(fd2, "Test file content", 17);  // Escribir 17 bytes
     close(fd2);
 
+    // Crear subdifectorio en el directorio origen
+    mkdir("./test_src_dir/subdir", 0700);
+
+    char filePath3[MAX_NAME_LENGTH];
+    snprintf(filePath3, sizeof(filePath3), "%s/%s", sourceDir, "subdir/testfile3.txt");
+
+    int fd3 = open(filePath3, O_CREAT | O_WRONLY, 0644);
+    write(fd3, "Subdir file content", 19); 
+    close(fd3);
+
+
     // Llamar a la función a probar
     readDirectory(sourceDir, destDir);
 
+    FileInfo *fileInfo1 = readFileInfo(FILE_INFO_BUFFER);
+    printf("Origin: %s\n", fileInfo1->origin);
+    
+    FileInfo *fileInfo2 = readFileInfo(FILE_INFO_BUFFER);
+    printf("Origin: %s\n", fileInfo2->origin);
+
+    FileInfo *fileInfo3 = readFileInfo(FILE_INFO_BUFFER);
+    printf("Origin: %s\n", fileInfo3->origin);
+
     // Limpiar archivos y directorios de prueba
-    unlink(filePath1);  // Eliminar archivos
+    unlink(filePath1); 
     unlink(filePath2);
-    rmdir(sourceDir);    // Eliminar directorios
+    rmdir(sourceDir);    
     rmdir(destDir);
 }
 
 int main() {
     // Inicializar buffers
-    FILE_INFO_BUFFER = malloc(sizeof(FileInfoBuffer));
+    FILE_INFO_BUFFER = newFileInfoBuffer();
 
     // Ejecutar el test
     test_readDirectory();
@@ -63,3 +76,5 @@ int main() {
 
     return 0;
 }
+
+//gcc -o test_readDirectory test_readDirectory.c functions.c fileinfo.c -lpthread
