@@ -1,0 +1,63 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "test_loginfo",
+			"type": "shell",
+			"command": "gcc",
+			"args": [
+				"-g", // Include debugging information
+				"test_loginfo.c", // Replace with your source file
+				"loginfo.c",
+				"-o",
+				"a.out" // Output file name
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "test_fileinfo",
+			"type": "shell",
+			"command": "gcc",
+			"args": [
+				"-g", // Include debugging information
+				"test_fileinfo.c", // Replace with your source file
+				"fileinfo.c",
+				"-o",
+				"a.out" // Output file name
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "mainCopy",
+			"type": "shell",
+			"command": "gcc",
+			"args": [
+				"-g", // Include debugging information
+				"mainCopy.c", // Replace with your source file
+				"fileinfo.c",
+				"loginfo.c",
+				"-o",
+				"a.out" // Output file name
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		}
+	]
+}
