@@ -2,6 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 
+FileInfo *newFileInfo()
+{
+    FileInfo *fileInfo = malloc(sizeof(FileInfo));
+    fileInfo->size = 0;
+    return fileInfo;
+}
+
 FileInfoBuffer *newFileInfoBuffer()
 {
     FileInfoBuffer *fileInfoBuffer = malloc(sizeof(FileInfoBuffer));

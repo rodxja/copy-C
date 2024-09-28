@@ -1,12 +1,13 @@
 #include "loginfo.h"
 #include <stdio.h>
 #include <string.h>
+#include "macros.h"
 
 LogInfo *newLogInfo(/* char *name, size_t size, time_t timestamp */)
 {
     LogInfo *fileInfo = malloc(sizeof(LogInfo));
     // Example initialization
-    snprintf(fileInfo->name, sizeof(fileInfo->name), "default_log");
+    snprintf(fileInfo->name, MAX_NAME_LENGTH, "default_log");
     fileInfo->size = 0;
     fileInfo->duration = 0;
     return fileInfo;

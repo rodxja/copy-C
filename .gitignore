@@ -122,7 +122,4 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
-### Matches all files that don't start with a dot and don't contain a dot
-[^.]*
-
 # End of https://www.toptal.com/developers/gitignore/api/macos,linux,c,c++

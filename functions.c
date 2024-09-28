@@ -1,3 +1,4 @@
+#include "functions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,53 +22,8 @@ int keepCopying = 1;
 FileInfoBuffer *FILE_INFO_BUFFER;
 LogInfoBuffer *LOG_INFO_BUFFER;
 
-/*
-readDirectory reads the files in a directory and stores the information in the FILE_INFO_BUFFER
-*/
-void readDirectory(const char *sourceDir, const char *destDir)
-{
-    DIR *dir;
-    struct dirent *entry; // Entries in the directory, files or subdirectories
-    struct stat statbuf;  // Struct to store file information, like size
-
-    dir = opendir(sourceDir);
-
-    if (dir == NULL)
-    {
-        perror("Error opening directory");
-        exit(EXIT_FAILURE);
-    }
-
-    // filesBuffer = malloc(100 * sizeof(FileInfo));
-
-    while ((entry = readdir(dir)) != NULL)
-    { // Iterate over the entries in the directory
-        char sourcePath[MAX_NAME_LENGTH];
-        char destPath[MAX_NAME_LENGTH];
-
-        FileInfo *fileInfo = malloc(sizeof(FileInfo));
-
-        // Create the full path for the source and destination files
-        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", sourceDir, entry->d_name);
-        snprintf(destPath, sizeof(destPath), "%s/%s", destDir, entry->d_name);
-
-        // Fill the buffer with the file information
-        if (stat(sourcePath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
-        {
-            strcpy(fileInfo->origin, sourcePath);
-            strcpy(fileInfo->destination, destPath);
-
-            fileInfo->size = statbuf.st_size;
-
-            writeFileInfo(FILE_INFO_BUFFER, fileInfo);
-        }
-    }
-
-    closedir(dir);
-}
-
 // https://stackoverflow.com/questions/7267295/how-can-i-copy-a-file-from-one-directory-to-another-in-c-c
-void *copyFiles(void *arg)
+void *copy(void *arg)
 {
     int threadNum = *((int *)arg);
 
@@ -157,37 +113,3 @@ void *copyFiles(void *arg)
 
     return NULL;
 }
-
-int main(int argc, char *argv[])
-{
-    if (argc != 3)
-    {
-        fprintf(stderr, "Usage: %s <source_dir> <dest_dir>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
-    const char *sourceDir = argv[1]; // Source directory where are contained the files to copy
-    const char *destDir = argv[2];   // Destination directory where the files will be copied
-
-    readDirectory(sourceDir, destDir);
-
-    // Create threads
-    pthread_t threads[NUM_THREADS];
-    int threadIds[NUM_THREADS]; // Array to store the thread ids, gives a number to each thread to identify them
-
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        threadIds[i] = i;
-        pthread_create(&threads[i], NULL, copyFiles, &threadIds[i]); // Missing the copyFiles function
-    }
-
-    // Main thread waits for his son threads to finish, before he continues
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        pthread_join(threads[i], NULL);
-    }
-
-    return 0;
-}
-
-// gcc -o mainCopy mainCopy.c fileinfo.c loginfo.c -pthread
