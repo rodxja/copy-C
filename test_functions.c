@@ -102,13 +102,16 @@ void test_fullcopy()
     mkdir(sourceSubDir, 0700);
 
     // Crear archivos de prueba en el directorio origen
-    char *filePath1 = malloc(strlen(sourceDir) + strlen(fileName1) + 2); // +2 for the '/' and the null terminator
-    char *filePath2 = malloc(strlen(sourceDir) + strlen(fileName2) + 2); // +2 for the '/' and the null terminator
-    char *fileSubPath3 = malloc(strlen(sourceSubDir) + strlen(fileName3) + 2);
+    size_t len1 = strlen(sourceDir) + strlen(fileName1) + 2;    // +2 for the '/' and the null terminator
+    char *filePath1 = malloc(len1);                             // +2 for the '/' and the null terminator
+    size_t len2 = strlen(sourceDir) + strlen(fileName2) + 2;    // +2 for the '/' and the null terminator
+    char *filePath2 = malloc(len2);                             // +2 for the '/' and the null terminator
+    size_t len3 = strlen(sourceSubDir) + strlen(fileName3) + 2; // +2 for the '/' and the null terminator
+    char *fileSubPath3 = malloc(len3);
 
-    snprintf(filePath1, sizeof(filePath1), "%s/%s", sourceDir, fileName1);
-    snprintf(filePath2, sizeof(filePath2), "%s/%s", sourceDir, fileName2);
-    snprintf(fileSubPath3, sizeof(fileSubPath3), "%s/%s", sourceSubDir, fileName3);
+    snprintf(filePath1, len1, "%s/%s", sourceDir, fileName1);
+    snprintf(filePath2, len2, "%s/%s", sourceDir, fileName2);
+    snprintf(fileSubPath3, len3, "%s/%s", sourceSubDir, fileName3);
 
     // Crear archivos de prueba y escribir algunos datos en ellos
     int fd1 = open(filePath1, O_CREAT | O_WRONLY, 0644);
@@ -135,6 +138,12 @@ void test_fullcopy()
     // Llamar a la función a probar
     readDirectory(sourceDir, destDir);
 
+    for (int i = 0; i < 3; i++)
+    {
+        FileInfo fileInfo = FILE_INFO_BUFFER->buffer[i];
+        printf("%s\n", toStringFileInfo(&fileInfo));
+    }
+
     // llamar a un solo copy
     int threadNum = 1;
     printf("Calling copy...\n");
@@ -144,19 +153,18 @@ void test_fullcopy()
 
     // los archivos deberian ser copiados exitosamente
 
-    unlink(filePath1);
-    unlink(filePath2);
-    unlink(fileSubPath3);
+    /* unlink(filePath1);
+     unlink(filePath2);
+     unlink(fileSubPath3);
+     */
 
     // ahora verificar que los datos están en LOG_INFO_BUFFER
 
-    LogInfo *logInfo1 = readLogInfo(LOG_INFO_BUFFER);
-    LogInfo *logInfo2 = readLogInfo(LOG_INFO_BUFFER);
-    LogInfo *logInfo3 = readLogInfo(LOG_INFO_BUFFER);
-
-    printf("LogInfo1: %s. Size %d.\n", logInfo1->name, logInfo1->size);
-    printf("LogInfo2: %s. Size %d.\n", logInfo2->name, logInfo2->size);
-    printf("LogInfo3: %s. Size %d.\n", logInfo3->name, logInfo3->size);
+    for (int i = 0; i < 3; i++)
+    {
+        LogInfo logInfo = LOG_INFO_BUFFER->buffer[i];
+        printf("%s\n", toStringLogInfo(&logInfo));
+    }
 
     // Limpiar archivos y directorios de prueba
 
@@ -167,8 +175,8 @@ void test_fullcopy()
 int main()
 {
     // Ejecutar el test
-    test_readDirectory();
-    // test_fullcopy();
+    // test_readDirectory();
+    test_fullcopy();
 
     printf("All tests passed!\n");
     return 0;

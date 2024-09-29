@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_THREADS; i++)
     {
         threadIds[i] = i;
-        pthread_create(&threads[i], NULL, copyFiles, &threadIds[i]); // Missing the copyFiles function
+        // pthread_create(&threads[i], NULL, copyFiles, &threadIds[i]); // Missing the copyFiles function
     }
 
     // Main thread waits for his son threads to finish, before he continues

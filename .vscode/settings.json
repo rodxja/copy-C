@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "loginfo.h": "c",
-        "functions.h": "c"
+        "functions.h": "c",
+        "string.h": "c"
     }
 }

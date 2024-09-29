@@ -58,6 +58,26 @@
 			"problemMatcher": [
 				"$gcc"
 			]
+		},
+		{
+			"label": "test_functions",
+			"type": "shell",
+			"command": "gcc",
+			"args": [
+				"-g", // Include debugging information
+				"functions.c", // Replace with your source file
+				"fileinfo.c",
+				"loginfo.c",
+				"-o",
+				"a.out" // Output file name
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
 		}
 	]
 }

@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <errno.h>
+// #include <libgen.h> // For dirname()
 #include "functions.h"
 #include "fileinfo.h"
 #include "loginfo.h"
@@ -28,8 +29,6 @@ readDirectory reads the files in a directory and stores the information in the F
 */
 void readDirectory(const char *sourceDir, const char *destDir)
 {
-
-    printf("srcDirectory: '%s'. destDirectory: '%s'\n", sourceDir, destDir);
     DIR *dir;
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
@@ -82,9 +81,10 @@ void readDirectory(const char *sourceDir, const char *destDir)
             // Validate if the entry is a directory
             else if (S_ISDIR(statbuf.st_mode))
             {
-                printf("srcDirectory: %s. destDirectory: '%s'\n", sourcePath, destPath);
                 // Create the directory in the destination path
                 // !!! i think that readDirectory should not create directories
+                // this should be move to the copy function
+                printf("Creating directory '%s'.\n", destPath);
                 // mkdir(destPath, 0755);
 
                 // Recursive call to read the directory
@@ -93,6 +93,67 @@ void readDirectory(const char *sourceDir, const char *destDir)
         }
     }
     closedir(dir);
+}
+
+int create_directory(const char *path)
+{
+    struct stat st;
+
+    // Check if the directory already exists
+    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode))
+    {
+        return 0; // Directory already exists
+    }
+
+    // Create the directory
+    if (mkdir(path, 0755) == -1)
+    {
+        perror("mkdir failed");
+        return -1; // Error creating the directory
+    }
+
+    return 0; // Success
+}
+
+void create_directories_except_last(const char *file_path)
+{
+    char path_copy[256];                              // Buffer to hold a copy of the file path
+    strncpy(path_copy, file_path, sizeof(path_copy)); // Copy the original path
+    path_copy[sizeof(path_copy) - 1] = '\0';          // Ensure null-termination
+
+    // Find the last '/' in the file path
+    char *last_slash = strrchr(path_copy, '/');
+    if (last_slash)
+    {
+        *last_slash = '\0'; // Terminate the string at the last slash to get the directory path
+    }
+    else
+    {
+        // If there is no '/', we can't create directories
+        return;
+    }
+
+    // Split the path by '/'
+    char *token = strtok(path_copy, "/");
+    char path[256] = ""; // To hold the current directory path
+
+    while (token != NULL)
+    {
+        // Append the next directory to the path
+        if (strlen(path) > 0)
+        {
+            strcat(path, "/");
+        }
+        strcat(path, token);
+
+        // Create the directory if it does not exist
+        create_directory(path);
+
+        token = strtok(NULL, "/"); // Get the next token
+    }
+
+    // Optionally, print the final directory path
+    printf("Directories created: %s\n", path);
 }
 
 // https://stackoverflow.com/questions/7267295/how-can-i-copy-a-file-from-one-directory-to-another-in-c-c
@@ -110,7 +171,7 @@ void *copy(void *arg)
             return NULL;
         }
 
-        LogInfo *logInfo = newFileInfo();
+        LogInfo *logInfo = newLogInfo();
 
         FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
         // !!! i am not using size
@@ -127,28 +188,7 @@ void *copy(void *arg)
         }
 
         printf("Thread '%d' is copying file '%s' to '%s'.\n", threadNum, fileInfo->origin, fileInfo->destination);
-        // creates destination recursively
-        fileInfo->destination[strlen(fileInfo->destination)] = '\0'; // Make sure the string is null-terminated
-        char *tmpPath = strdup(fileInfo->destination);               // Duplicate the path so we can modify it
-
-        printf("tmpPath: %s\n", tmpPath);
-        char *currentDir = dirname(tmpPath); // Get the directory part of the path
-
-        printf("currentDir: %s\n", currentDir);
-
-        // Recursively create directories if they don't exist
-        if (mkdir(currentDir, 0777) == -1)
-        {
-            if (errno != EEXIST)
-            {
-                // If directory creation failed and it's not because it already exists
-                fprintf(stderr, "Error creating directory %s: %s\n", currentDir, strerror(errno));
-                free(tmpPath);
-                return NULL;
-            }
-        }
-
-        free(tmpPath); // Clean up the temporary string
+        create_directories_except_last(fileInfo->destination);
 
         // ??? I THINK THIS DESTINATION SHOULD CHANGE
         int destFD = open(fileInfo->destination, O_WRONLY | O_CREAT | O_TRUNC, 0666);
