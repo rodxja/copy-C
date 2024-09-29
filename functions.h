@@ -7,15 +7,21 @@
 #include "fileinfo.h"
 #include "loginfo.h"
 
-extern int keepCopying;
-extern int keepLogging;
-
 // BUFFERS
 extern FileInfoBuffer *FILE_INFO_BUFFER;
 extern LogInfoBuffer *LOG_INFO_BUFFER;
 
+typedef struct
+{
+    char *origin;      // Field to store the origin path
+    char *destination; // Field to store the destination path
+    int threadNum;     // Field to store the thread number
+} ReadDirectoryInfo;
+
+ReadDirectoryInfo *newReadDirectoryInfo();
+
 // Function prototypes
-void readDirectory(const char *sourceDir, const char *destDir);
+void *readDirectory(void *arg);
 void *copy(void *arg);
 void *writeLog(void *arg);
 

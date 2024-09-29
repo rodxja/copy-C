@@ -53,8 +53,14 @@ void test_readDirectory()
     write(fd3, "Subdir file content", 19);
     close(fd3);
 
+    // fin de creación de archivos
+
+    ReadDirectoryInfo *readDirectoryInfo = (ReadDirectoryInfo *)malloc(sizeof(ReadDirectoryInfo));
+    readDirectoryInfo->origin = sourceDir;
+    readDirectoryInfo->destination = destDir;
+
     // Llamar a la función a probar
-    readDirectory(sourceDir, destDir);
+    readDirectory(readDirectoryInfo);
 
     FileInfo *fileInfo1 = readFileInfo(FILE_INFO_BUFFER);
     printf("Origin: %s\n", fileInfo1->origin);
@@ -135,8 +141,14 @@ void test_fullcopy()
             - testfile3.txt
      */
 
+    // Crear la estructura de información de directorio
+
+    ReadDirectoryInfo *readDirectoryInfo = (ReadDirectoryInfo *)malloc(sizeof(ReadDirectoryInfo));
+    readDirectoryInfo->origin = sourceDir;
+    readDirectoryInfo->destination = destDir;
+
     // Llamar a la función a probar
-    readDirectory(sourceDir, destDir);
+    readDirectory(readDirectoryInfo);
 
     for (int i = 0; i < 3; i++)
     {

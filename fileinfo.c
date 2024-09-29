@@ -2,6 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
+// Variable to control the threads execution for copying files
+// 1: Keep copying, indicates that readDirectory has not finished
+// 0: Stop copying, indicates that readDirectory has finished
+// it will be set by the main thread once it processes all the files to fill in the buffer
+int keepCopying = 1;
+
+void startCopying()
+{
+    printf("Starting copying...\n");
+    keepCopying = 1;
+}
+
+void stopCopying()
+{
+    printf("Stopping copying...\n");
+    keepCopying = 0;
+}
+
 FileInfo *newFileInfo()
 {
     FileInfo *fileInfo = malloc(sizeof(FileInfo));
@@ -59,8 +77,10 @@ void freeFileInfoBuffer(FileInfoBuffer *fileInfoBuffer)
 void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
-    while (((fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE) == fileInfoBuffer->readIndex)
+    // wait while the buffer is full
+    while (isFullFileInfo(fileInfoBuffer))
     {
+        printf("FileInfo Buffer is full, waiting for a read\n");
         pthread_cond_wait(&fileInfoBuffer->not_full, &fileInfoBuffer->mutex);
     }
     printf("writing FileInfo '%s' into buffer[%d]\n", toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
@@ -73,8 +93,10 @@ void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
 FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
-    while (fileInfoBuffer->writeIndex == fileInfoBuffer->readIndex)
+    // wait while the buffer is empty and readDirectory is still running (keepCopying == 1)
+    while (!hasFileInfo(fileInfoBuffer) && keepCopying)
     {
+        printf("FileInfo Buffer is empty, waiting for a write\n");
         pthread_cond_wait(&fileInfoBuffer->not_empty, &fileInfoBuffer->mutex);
     }
     printf("reading FileInfo '%s' from buffer[%d]\n", toStringFileInfo(&fileInfoBuffer->buffer[fileInfoBuffer->readIndex]), fileInfoBuffer->readIndex);
@@ -89,4 +111,14 @@ FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 int hasFileInfo(FileInfoBuffer *fileInfoBuffer)
 {
     return fileInfoBuffer->writeIndex != fileInfoBuffer->readIndex;
+}
+
+int isEmptyFileInfo(FileInfoBuffer *fileInfoBuffer)
+{
+    return fileInfoBuffer->writeIndex == fileInfoBuffer->readIndex;
+}
+
+int isFullFileInfo(FileInfoBuffer *fileInfoBuffer)
+{
+    return ((fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE) == fileInfoBuffer->readIndex;
 }

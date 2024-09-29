@@ -5,6 +5,11 @@
 #include <stdlib.h>
 #include "macros.h"
 
+extern int keepCopying;
+
+void startCopying();
+void stopCopying();
+
 /*
 FileInfo stores the information of a file to be copied
 It has the origin path, the destination path and the size in bytes
@@ -39,5 +44,7 @@ void freeFileInfoBuffer(FileInfoBuffer *logInfoBuffer);
 void writeFileInfo(FileInfoBuffer *logInfoBuffer, FileInfo *logInfo);
 FileInfo *readFileInfo(FileInfoBuffer *logInfoBuffer);
 int hasFileInfo(FileInfoBuffer *fileInfoBuffer);
+int isEmptyFileInfo(FileInfoBuffer *fileInfoBuffer);
+int isFullFileInfo(FileInfoBuffer *fileInfoBuffer);
 
 #endif // FILEINFO_H

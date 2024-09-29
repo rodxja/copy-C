@@ -20,10 +20,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // TODO : once readDirectory is handle as a single thread, add another thread to numThreads
     // const int NUM_THREADS = 4; // Number of threads to create for copy
-    // + 1 thread for writeLog
-    int numThreads = NUM_THREADS + 1; // Number of threads to create
+    // + 2 thread for readDirectory and writeLog
+    int numThreads = NUM_THREADS + 2; // Number of threads to create
 
     const char *sourceDir = argv[1]; // Source directory where are contained the files to copy
     const char *destDir = argv[2];   // Destination directory where the files will be copied
@@ -32,46 +31,59 @@ int main(int argc, char *argv[])
     FILE_INFO_BUFFER = newFileInfoBuffer();
     LOG_INFO_BUFFER = newLogInfoBuffer();
 
-    // TODO :  handle as single thread
-    readDirectory(sourceDir, destDir);
-
-    // now that readDirectory has finished, we can stop the threads
-    keepCopying = 0;
+    // Create the readDirectoryInfo struct
+    ReadDirectoryInfo *readDirectoryInfo = newReadDirectoryInfo();
+    readDirectoryInfo->origin = sourceDir;
+    readDirectoryInfo->destination = destDir;
+    readDirectoryInfo->threadNum = 0;
 
     // Create threads
     pthread_t threads[numThreads];
     int threadIds[numThreads]; // Array to store the thread ids, gives a number to each thread to identify them
 
-    // TODO : start i from 1 when readDirectory is handle as a single thread
-    for (int i = 0; i < numThreads - 1; i++)
+    startCopying();
+    // create thread[0] for readDirectory
+    threadIds[0] = 0;
+    pthread_create(&threads[0], NULL, readDirectory, readDirectoryInfo);
+
+    startLogging();
+    // Create the threads[1:n-2] for copy
+    for (int i = 1; i < numThreads - 1; i++)
     {
         threadIds[i] = i;
         pthread_create(&threads[i], NULL, copy, &threadIds[i]); // Missing the copyFiles function
     }
 
-    // Create the thread for writeLog
+    // Create the thread[n-1] for writeLog
     threadIds[numThreads - 1] = numThreads - 1;
     pthread_create(&threads[numThreads - 1], NULL, writeLog, &threadIds[numThreads - 1]);
 
+    // waiting for the readDirectory thread to finish
+    void *resultReadDirectory;
+    pthread_join(threads[0], &resultReadDirectory);
+    int threadNumReadDirectory = (int)(size_t)resultReadDirectory;
+    printf("ReadDirectory thread %d noticed that it has stopped.\n", threadNumReadDirectory);
+
+    stopCopying();
+
     // Main thread waits for his son threads to finish, before he continues
     // NUM_THREADS for copy and 1 for writeLog
-    // TODO : pending to add thread for readDirectory
-    for (int i = 0; i < NUM_THREADS; i++)
+    for (int i = 1; i < NUM_THREADS; i++)
     {
         void *result;
         pthread_join(threads[i], &result);
         int threadNum = (int)(size_t)result;
-        // printf("Copy thread %d has stopped.\n", threadNum);
+        printf("Copy thread %d noticed that it has stopped.\n", threadNum);
     }
 
     // now that the threads have finished, we can stop the logging
-    keepLogging = 0;
+    stopLogging();
 
     // wait for the writeLog thread to finish
     void *result;
     pthread_join(threads[numThreads - 1], &result);
     int threadNum = (int)(size_t)result;
-    // printf("Log thread %d has stopped.\n", threadNum);
+    printf("Log thread %d noticed that it has stopped.\n", threadNum);
 
     return 0;
 }

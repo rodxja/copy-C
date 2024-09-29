@@ -14,34 +14,33 @@
 #include "fileinfo.h"
 #include "loginfo.h"
 
-// Variable to control the threads execution for copying files
-// 1: Keep copying
-// 0: Stop copying
-// it will be set by the main thread once it processes all the files to fill in the buffer
-int keepCopying = 1;
-
-// Variable to control the threads execution for logging
-// 1: Keep logging
-// 0: Stop logging
-// it will be set by the main thread once it processes all the files to fill in the buffer
-int keepLogging = 1;
-
 // BUFFERS
 FileInfoBuffer *FILE_INFO_BUFFER;
 LogInfoBuffer *LOG_INFO_BUFFER;
 
+ReadDirectoryInfo *newReadDirectoryInfo()
+{
+    ReadDirectoryInfo *readDirectoryInfo = (ReadDirectoryInfo *)malloc(sizeof(ReadDirectoryInfo));
+    readDirectoryInfo->origin = NULL;
+    readDirectoryInfo->destination = NULL;
+    readDirectoryInfo->threadNum = -1;
+    return readDirectoryInfo;
+}
+
 /*
 readDirectory reads the files in a directory and stores the information in the FILE_INFO_BUFFER
 */
-void readDirectory(const char *sourceDir, const char *destDir)
+void *readDirectory(void *arg)
 {
+    ReadDirectoryInfo *readDirectoryInfo = (ReadDirectoryInfo *)arg;
+
     DIR *dir;
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
 
     // create_directories_except_last(destDir);
 
-    dir = opendir(sourceDir);
+    dir = opendir(readDirectoryInfo->origin);
     if (dir == NULL)
     {
         perror("Error opening directory");
@@ -60,14 +59,14 @@ void readDirectory(const char *sourceDir, const char *destDir)
         }
 
         // Memory allocation for the paths
-        size_t srcLen = strlen(sourceDir) + strlen(entry->d_name) + 2;
+        size_t srcLen = strlen(readDirectoryInfo->origin) + strlen(entry->d_name) + 2;
         sourcePath = (char *)malloc(srcLen * sizeof(char)); // +2 for the '/' and the null terminator
-        size_t destLen = strlen(destDir) + strlen(entry->d_name) + 2;
+        size_t destLen = strlen(readDirectoryInfo->destination) + strlen(entry->d_name) + 2;
         destPath = (char *)malloc(destLen * sizeof(char));
 
         // set sourcePath and destPath
-        snprintf(sourcePath, srcLen, "%s/%s", sourceDir, entry->d_name);
-        snprintf(destPath, destLen, "%s/%s", destDir, entry->d_name);
+        snprintf(sourcePath, srcLen, "%s/%s", readDirectoryInfo->origin, entry->d_name);
+        snprintf(destPath, destLen, "%s/%s", readDirectoryInfo->destination, entry->d_name);
         // Fill the buffer with the file information
 
         if (stat(sourcePath, &statbuf) == 0)
@@ -80,7 +79,6 @@ void readDirectory(const char *sourceDir, const char *destDir)
                 setDestination(fileInfo, destPath);
                 fileInfo->size = statbuf.st_size;
 
-                printf("'readDirectory' is ");
                 writeFileInfo(FILE_INFO_BUFFER, fileInfo);
 
                 free(sourcePath);
@@ -95,12 +93,18 @@ void readDirectory(const char *sourceDir, const char *destDir)
                 // printf("Creating directory '%s'.\n", destPath);
                 mkdir(destPath, 0755);
 
+                ReadDirectoryInfo *newReadDirectoryInfo = (ReadDirectoryInfo *)malloc(sizeof(ReadDirectoryInfo));
+                newReadDirectoryInfo->origin = sourcePath;
+                newReadDirectoryInfo->destination = destPath;
+
                 // Recursive call to read the directory
-                readDirectory(sourcePath, destPath);
+                readDirectory(newReadDirectoryInfo);
             }
         }
     }
     closedir(dir);
+    // printf("ReadDirectory thread %d has stopped in function.\n", readDirectoryInfo->threadNum);
+    return (void *)(size_t)readDirectoryInfo->threadNum;
 }
 
 // https://stackoverflow.com/questions/7267295/how-can-i-copy-a-file-from-one-directory-to-another-in-c-c
@@ -126,7 +130,6 @@ void *copy(void *arg)
 
         LogInfo *logInfo = newLogInfo();
 
-        printf("'Copy' Thread '%d' is ", threadNum);
         FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
 
         // Set the name of the file to the logInfo
@@ -204,11 +207,10 @@ void *copy(void *arg)
         close(destFD);
 
         // Lock the mutex to increment the filesCopied counter
-        printf("'Copy' Thread '%d' is ", threadNum);
         writeLogInfo(LOG_INFO_BUFFER, logInfo);
         // freeFileInfo(fileInfo);
     }
-
+    printf("Copy thread %d has stopped in function.\n", threadNum);
     return (void *)(size_t)threadNum;
 }
 
@@ -225,7 +227,6 @@ void *writeLog(void *arg)
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
     while (hasLogInfo(LOG_INFO_BUFFER) || keepLogging)
     {
-        printf("'WriteLog' Thread '%d' is ", threadNum);
         LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
 
         // create a csv. file with the log info
@@ -244,5 +245,6 @@ void *writeLog(void *arg)
         // freeLogInfo(logInfo); // do not free for now
     }
 
+    printf("Log thread %d has stopped in function.\n", threadNum);
     return (void *)(size_t)threadNum;
 }

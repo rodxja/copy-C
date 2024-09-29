@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include "macros.h"
 
+extern int keepLogging;
+
+void startLogging();
+void stopLogging();
+
 /*
 LogInfo stores the information of a file that was copied
 It has the name, the size in bytes and the duration in miliseconds
@@ -46,5 +51,7 @@ void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
 void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
 int hasLogInfo(LogInfoBuffer *logINfoBuffer);
+int isEmptyLogInfo(LogInfoBuffer *logInfoBuffer);
+int isFullLogInfo(LogInfoBuffer *logInfoBuffer);
 
 #endif // LOGINFO_H
