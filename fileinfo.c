@@ -113,5 +113,8 @@ void startCopying(FileInfoBuffer *fileInfoBuffer)
 
 void stopCopying(FileInfoBuffer *fileInfoBuffer)
 {
+    pthread_mutex_lock(&fileInfoBuffer->mutex);
+    pthread_cond_signal(&fileInfoBuffer->not_empty);
     fileInfoBuffer->keepCopying = 0;
+    pthread_mutex_unlock(&fileInfoBuffer->mutex);
 }

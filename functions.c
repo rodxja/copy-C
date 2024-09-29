@@ -120,7 +120,7 @@ void *copy(void *arg)
     // keepCopying is set to 0 by the main thread once it finishes reading the directory
     // then the FILE_INFO_BUFFER will have files info until the last thread reads the last file
     // and then the threads will stop one by one
-    while (hasFileInfo(FILE_INFO_BUFFER) || keepCopying)
+    while (hasFileInfo(FILE_INFO_BUFFER) || FILE_INFO_BUFFER->keepCopying)
     {
         if (FILE_INFO_BUFFER == NULL)
         {
@@ -225,7 +225,7 @@ void *writeLog(void *arg)
     // and then the threads will stop one by one
 
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
-    while (hasLogInfo(LOG_INFO_BUFFER) || keepLogging)
+    while (hasLogInfo(LOG_INFO_BUFFER) || LOG_INFO_BUFFER->keepLogging)
     {
         LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
 

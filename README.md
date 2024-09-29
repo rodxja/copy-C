@@ -41,3 +41,14 @@ new error
     }
     i am assuming that while (!hasLogInfo(logInfoBuffer) && keepLogging) will be check at some time after wait
     but pthread_cond_wait is waiting for logInfoBuffer->not_empty to be change in order to stop blocking
+
+    yes, it was for that, now there is no deadlock due that stopKeep... functions are sending a signal and unblocking the thread
+
+new issue
+    reading FileInfo 'FileInfo: (null) -> (null). Size 0.' from buffer[4]
+    Segmentation fault (core dumped)
+
+    after unblocking it is reading an empty item
+    it should not be read
+
+    validate that there is data and return null

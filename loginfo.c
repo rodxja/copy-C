@@ -111,5 +111,8 @@ void startLogging(LogInfoBuffer *logInfoBuffer)
 
 void stopLogging(LogInfoBuffer *logInfoBuffer)
 {
+    pthread_mutex_lock(&logInfoBuffer->mutex);
+    pthread_cond_signal(&logInfoBuffer->not_empty);
     logInfoBuffer->keepLogging = 0;
+    pthread_mutex_unlock(&logInfoBuffer->mutex);
 }
