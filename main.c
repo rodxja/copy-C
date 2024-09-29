@@ -78,3 +78,4 @@ int main(int argc, char *argv[])
 }
 
 // gcc -o main main.c fileinfo.c loginfo.c functions.c -pthread
+// ./main ./test ./copy/more
