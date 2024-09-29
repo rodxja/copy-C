@@ -1,9 +1,8 @@
 #include "loginfo.h"
 #include <stdio.h>
 #include <string.h>
-#include "macros.h"
 
-LogInfo *newLogInfo(/* char *name, size_t size, time_t timestamp */)
+LogInfo *newLogInfo()
 {
     LogInfo *fileInfo = malloc(sizeof(LogInfo));
     // Example initialization
@@ -65,4 +64,11 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
     pthread_cond_signal(&logInfoBuffer->not_full);
     pthread_mutex_unlock(&logInfoBuffer->mutex);
     return logInfo;
+}
+
+char *toStringLogInfo(LogInfo *logInfo)
+{
+    char *str = malloc(256 * sizeof(char));
+    snprintf(str, 256, "LogInfo: %s. Size %ld. Duration %.2f ms.", logInfo->name, logInfo->size, logInfo->duration);
+    return str;
 }

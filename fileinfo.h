@@ -33,5 +33,7 @@ FileInfoBuffer *newFileInfoBuffer();
 void freeFileInfoBuffer(FileInfoBuffer *logInfoBuffer);
 void writeFileInfo(FileInfoBuffer *logInfoBuffer, FileInfo *logInfo);
 FileInfo *readFileInfo(FileInfoBuffer *logInfoBuffer);
+int hasFiles(FileInfoBuffer *fileInfoBuffer);
+char *toStringFileInfo(FileInfo *fileInfo);
 
 #endif // FILEINFO_H

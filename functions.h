@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "fileinfo.h"
+#include "loginfo.h"
 
 extern int keepCopying;
 
@@ -13,7 +14,8 @@ extern FileInfoBuffer *FILE_INFO_BUFFER;
 extern LogInfoBuffer *LOG_INFO_BUFFER;
 
 // Function prototypes
-void *copy(void *arg);
 void readDirectory(const char *sourceDir, const char *destDir);
+void *copy(void *arg);
+void *writeLog(void *arg);
 
 #endif // FUNCTIONS_H

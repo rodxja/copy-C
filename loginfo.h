@@ -17,6 +17,8 @@ typedef struct
     double duration;            // In miliseconds
 } LogInfo;
 
+LogInfo *newLogInfo();
+
 /*
 FileInfoBuffer is the buffer that will store the FileInfo structs
 It contains a mutex to control the access to the buffer, the buffer itself
@@ -36,10 +38,10 @@ typedef struct
 } LogInfoBuffer;
 
 // Function prototypes
-LogInfo *newLogInfo();
 LogInfoBuffer *newLogInfoBuffer();
 void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
 void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
+char *toStringLogInfo(LogInfo *logInfo);
 
 #endif // LOGINFO_H

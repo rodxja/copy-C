@@ -37,6 +37,7 @@ void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
     {
         pthread_cond_wait(&fileInfoBuffer->not_full, &fileInfoBuffer->mutex);
     }
+    printf("Writing file info (%s) to buffer %d\n", toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
     fileInfoBuffer->buffer[fileInfoBuffer->writeIndex] = *fileInfo;
     fileInfoBuffer->writeIndex = (fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE;
     pthread_cond_signal(&fileInfoBuffer->not_empty);
@@ -51,8 +52,22 @@ FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
         pthread_cond_wait(&fileInfoBuffer->not_empty, &fileInfoBuffer->mutex);
     }
     FileInfo *fileInfo = &fileInfoBuffer->buffer[fileInfoBuffer->readIndex];
+    printf("Reading file info (%s) from buffer %d\n", toStringFileInfo(fileInfo), fileInfoBuffer->readIndex);
     fileInfoBuffer->readIndex = (fileInfoBuffer->readIndex + 1) % BUFFER_SIZE;
     pthread_cond_signal(&fileInfoBuffer->not_full);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
     return fileInfo;
+}
+
+// Check if there are files in the buffer, this is called by copy function in order to know if there are files to copy
+int hasFiles(FileInfoBuffer *fileInfoBuffer)
+{
+    return fileInfoBuffer->writeIndex != fileInfoBuffer->readIndex;
+}
+
+char *toStringFileInfo(FileInfo *fileInfo)
+{
+    char *str = malloc(MAX_NAME_LENGTH * 3 + 20);
+    snprintf(str, MAX_NAME_LENGTH * 3 + 20, "Origin: %s, Destination: %s, Size: %ld", fileInfo->origin, fileInfo->destination, fileInfo->size);
+    return str;
 }
