@@ -38,9 +38,8 @@ void readDirectory(const char *sourceDir, const char *destDir)
     DIR *dir;
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
-    
-    dir = opendir(sourceDir);
 
+    dir = opendir(sourceDir);
     if (dir == NULL)
     {
         perror("Error opening directory");
@@ -182,7 +181,7 @@ void *copy(void *arg)
         if (FILE_INFO_BUFFER == NULL)
         {
             printf("Error: fileNameBuffer is null. Thread '%d' is going to stop.\n", threadNum);
-            return NULL;
+            return (void *)(size_t)threadNum;
         }
 
         LogInfo *logInfo = newLogInfo();
@@ -272,7 +271,7 @@ void *copy(void *arg)
         // freeFileInfo(fileInfo);
     }
 
-    return NULL;
+    return (void *)(size_t)threadNum;
 }
 
 // this function will be called by one thread
@@ -310,5 +309,5 @@ void *writeLog(void *arg)
         // freeLogInfo(logInfo); // do not free for now
     }
 
-    return NULL;
+    return (void *)(size_t)threadNum;
 }

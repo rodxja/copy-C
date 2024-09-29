@@ -28,9 +28,16 @@ int main(int argc, char *argv[])
     const char *sourceDir = argv[1]; // Source directory where are contained the files to copy
     const char *destDir = argv[2];   // Destination directory where the files will be copied
 
+    // BUFFERS
+    FILE_INFO_BUFFER = newFileInfoBuffer();
+    LOG_INFO_BUFFER = newLogInfoBuffer();
+
     printf("Copying files from '%s' to '%s' using %d threads.\n", sourceDir, destDir, numThreads - 1);
     // TODO :  handle as single thread
     readDirectory(sourceDir, destDir);
+
+    // now that readDirectory has finished, we can stop the threads
+    keepCopying = 0;
 
     // Create threads
     pthread_t threads[numThreads];
@@ -50,10 +57,22 @@ int main(int argc, char *argv[])
     // Main thread waits for his son threads to finish, before he continues
     // NUM_THREADS for copy and 1 for writeLog
     // TODO : pending to add thread for readDirectory
-    for (int i = 0; i < numThreads; i++)
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        pthread_join(threads[i], NULL);
+        void *result;
+        pthread_join(threads[i], &result);
+        int threadNum = (int)(size_t)result;
+        printf("Copy thread %d has stopped.\n", threadNum);
     }
+
+    // now that the threads have finished, we can stop the logging
+    keepLogging = 0;
+
+    // wait for the writeLog thread to finish
+    void *result;
+    pthread_join(threads[numThreads - 1], &result);
+    int threadNum = (int)(size_t)result;
+    printf("Log thread %d has stopped.\n", threadNum);
 
     return 0;
 }

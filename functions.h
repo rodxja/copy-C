@@ -8,6 +8,7 @@
 #include "loginfo.h"
 
 extern int keepCopying;
+extern int keepLogging;
 
 // BUFFERS
 extern FileInfoBuffer *FILE_INFO_BUFFER;
