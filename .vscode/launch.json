@@ -44,7 +44,7 @@
             "miDebuggerPath": "/usr/bin/gdb" // Path to gdb
         },
         {
-            "name": "mainCopy",
+            "name": "main",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/a.out", // Change this to your compiled program's path
@@ -61,7 +61,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "mainCopy",
+            "preLaunchTask": "main",
             "miDebuggerPath": "/usr/bin/gdb" // Path to gdb
         },
         {

@@ -14,11 +14,17 @@
 #include "fileinfo.h"
 #include "loginfo.h"
 
-// Variable to control the threads execution
+// Variable to control the threads execution for copying files
 // 1: Keep copying
 // 0: Stop copying
 // it will be set by the main thread once it processes all the files to fill in the buffer
 int keepCopying = 1;
+
+// Variable to control the threads execution for logging
+// 1: Keep logging
+// 0: Stop logging
+// it will be set by the main thread once it processes all the files to fill in the buffer
+int keepLogging = 1;
 
 // BUFFERS
 FileInfoBuffer *FILE_INFO_BUFFER;
@@ -32,7 +38,7 @@ void readDirectory(const char *sourceDir, const char *destDir)
     DIR *dir;
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
-
+    
     dir = opendir(sourceDir);
 
     if (dir == NULL)
@@ -82,9 +88,9 @@ void readDirectory(const char *sourceDir, const char *destDir)
             else if (S_ISDIR(statbuf.st_mode))
             {
                 // Create the directory in the destination path
-                // !!! i think that readDirectory should not create directories
-                // this should be move to the copy function
-                printf("Creating directory '%s'.\n", destPath);
+                // Move the directory creation to the copy function
+                // Destination must not exists in order to copy the files
+                // printf("Creating directory '%s'.\n", destPath);
                 // mkdir(destPath, 0755);
 
                 // Recursive call to read the directory
@@ -95,6 +101,7 @@ void readDirectory(const char *sourceDir, const char *destDir)
     closedir(dir);
 }
 
+// Create a directory
 int create_directory(const char *path)
 {
     struct stat st;
@@ -115,6 +122,7 @@ int create_directory(const char *path)
     return 0; // Success
 }
 
+// create a directory for each part of the path except the file name
 void create_directories_except_last(const char *file_path)
 {
     char path_copy[256];                              // Buffer to hold a copy of the file path
@@ -161,9 +169,15 @@ void *copy(void *arg)
 {
     int threadNum = *((int *)arg);
 
-    // !!! evaluate other ways to stop the threads
     // copy while there are files to copy
-    while (hasFileInfo(FILE_INFO_BUFFER)) // change this keepCopying to a global variable in FILE_INFO_BUFFER
+    // as there may several threads running this 'copy' function
+    // there will be a moment where hasFileInfo will return 0 and stops the threads
+    // this is because there is ONE single thread filling the buffer, against n threads reading from it
+    // so we need another condition to keep the threads running
+    // keepCopying is set to 0 by the main thread once it finishes reading the directory
+    // then the FILE_INFO_BUFFER will have files info until the last thread reads the last file
+    // and then the threads will stop one by one
+    while (hasFileInfo(FILE_INFO_BUFFER) || keepCopying)
     {
         if (FILE_INFO_BUFFER == NULL)
         {
@@ -261,13 +275,20 @@ void *copy(void *arg)
     return NULL;
 }
 
+// this function will be called by one thread
 void *writeLog(void *arg)
 {
     int threadNum = *((int *)arg);
 
     printf("Thread '%d' is writing log info...\n", threadNum);
 
-    while (hasLogInfo(LOG_INFO_BUFFER))
+    // keep loggin while there is log info to read or keepLogging is set to 1
+    // keepLogging is set to 0 by the main thread once it finishes copying the files
+    // then the LOG_INFO_BUFFER will have log info until the last thread reads the last log info
+    // and then the threads will stop one by one
+
+    // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
+    while (hasLogInfo(LOG_INFO_BUFFER) || keepLogging)
     {
         printf("Thread '%d' is reading log info...\n", threadNum);
         LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
