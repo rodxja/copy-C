@@ -12,12 +12,15 @@ It has the name, the size in bytes and the duration in miliseconds
 */
 typedef struct
 {
-    char name[MAX_NAME_LENGTH]; // Field to store the name
-    size_t size;                // In bytes
-    double duration;            // In miliseconds
+    char *name;      // Field to store the name
+    size_t size;     // In bytes
+    double duration; // In miliseconds
 } LogInfo;
 
 LogInfo *newLogInfo();
+void setName(LogInfo *logInfo, const char *name);
+void freeLogInfo(LogInfo *logInfo);
+char *toStringLogInfo(LogInfo *logInfo);
 
 /*
 FileInfoBuffer is the buffer that will store the FileInfo structs
@@ -42,6 +45,5 @@ LogInfoBuffer *newLogInfoBuffer();
 void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
 void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
-char *toStringLogInfo(LogInfo *logInfo);
 
 #endif // LOGINFO_H

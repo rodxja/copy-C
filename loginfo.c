@@ -6,10 +6,29 @@ LogInfo *newLogInfo()
 {
     LogInfo *fileInfo = malloc(sizeof(LogInfo));
     // Example initialization
-    snprintf(fileInfo->name, MAX_NAME_LENGTH, "default_log");
+    // set fileInfo->name to an empty string without using macros or
     fileInfo->size = 0;
     fileInfo->duration = 0;
     return fileInfo;
+}
+
+void setName(LogInfo *logInfo, const char *name)
+{
+    logInfo->name = malloc(strlen(name) + 1);
+    strcpy(logInfo->name, name);
+}
+
+void freeLogInfo(LogInfo *logInfo)
+{
+    free(logInfo->name);
+    free(logInfo);
+}
+
+char *toStringLogInfo(LogInfo *logInfo)
+{
+    char *str = malloc(256 * sizeof(char));
+    snprintf(str, 256, "LogInfo: %s. Size %ld. Duration %.2f ms.", logInfo->name, logInfo->size, logInfo->duration);
+    return str;
 }
 
 LogInfoBuffer *newLogInfoBuffer()
@@ -64,11 +83,4 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
     pthread_cond_signal(&logInfoBuffer->not_full);
     pthread_mutex_unlock(&logInfoBuffer->mutex);
     return logInfo;
-}
-
-char *toStringLogInfo(LogInfo *logInfo)
-{
-    char *str = malloc(256 * sizeof(char));
-    snprintf(str, 256, "LogInfo: %s. Size %ld. Duration %.2f ms.", logInfo->name, logInfo->size, logInfo->duration);
-    return str;
 }

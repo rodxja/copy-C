@@ -19,17 +19,26 @@ void test_readDirectory()
     const char *sourceSubDir = "./test_src_dir/subdir";
     const char *destDir = "./test_dest_dir";
 
+    // files name
+    const char *fileName1 = "testfile1.txt";
+    const char *fileName2 = "testfile2.txt";
+    const char *fileName3 = "testfile3.txt";
+
     // Crear directorios de prueba
     mkdir(sourceDir, 0700);
     mkdir(sourceSubDir, 0700);
 
     // Crear archivos de prueba en el directorio origen
-    char filePath1[MAX_NAME_LENGTH];
-    char filePath2[MAX_NAME_LENGTH];
-    char fileSubPath3[MAX_NAME_LENGTH];
-    snprintf(filePath1, sizeof(filePath1), "%s/%s", sourceDir, "testfile1.txt");
-    snprintf(filePath2, sizeof(filePath2), "%s/%s", sourceDir, "testfile2.txt");
-    snprintf(fileSubPath3, sizeof(fileSubPath3), "%s/%s", sourceSubDir, "testfile3.txt");
+    size_t len1 = strlen(sourceDir) + strlen(fileName1) + 2;    // +2 for the '/' and the null terminator
+    char *filePath1 = malloc(len1);                             // +2 for the '/' and the null terminator
+    size_t len2 = strlen(sourceDir) + strlen(fileName2) + 2;    // +2 for the '/' and the null terminator
+    char *filePath2 = malloc(len2);                             // +2 for the '/' and the null terminator
+    size_t len3 = strlen(sourceSubDir) + strlen(fileName3) + 2; // +2 for the '/' and the null terminator
+    char *fileSubPath3 = malloc(len3);
+
+    snprintf(filePath1, len1, "%s/%s", sourceDir, fileName1);
+    snprintf(filePath2, len2, "%s/%s", sourceDir, fileName2);
+    snprintf(fileSubPath3, len3, "%s/%s", sourceSubDir, fileName3);
 
     // Crear archivos de prueba y escribir algunos datos en ellos
     int fd1 = open(filePath1, O_CREAT | O_WRONLY, 0644);
@@ -83,17 +92,23 @@ void test_fullcopy()
     const char *sourceSubDir = "./test_src_dir/subdir";
     const char *destDir = "./test_dest_dir";
 
+    // files name
+    const char *fileName1 = "testfile1.txt";
+    const char *fileName2 = "testfile2.txt";
+    const char *fileName3 = "testfile3.txt";
+
     // Crear directorios de prueba
     mkdir(sourceDir, 0700);
     mkdir(sourceSubDir, 0700);
 
     // Crear archivos de prueba en el directorio origen
-    char filePath1[MAX_NAME_LENGTH];
-    char filePath2[MAX_NAME_LENGTH];
-    char fileSubPath3[MAX_NAME_LENGTH];
-    snprintf(filePath1, sizeof(filePath1), "%s/%s", sourceDir, "testfile1.txt");
-    snprintf(filePath2, sizeof(filePath2), "%s/%s", sourceDir, "testfile2.txt");
-    snprintf(fileSubPath3, sizeof(fileSubPath3), "%s/%s", sourceSubDir, "testfile3.txt");
+    char *filePath1 = malloc(strlen(sourceDir) + strlen(fileName1) + 2); // +2 for the '/' and the null terminator
+    char *filePath2 = malloc(strlen(sourceDir) + strlen(fileName2) + 2); // +2 for the '/' and the null terminator
+    char *fileSubPath3 = malloc(strlen(sourceSubDir) + strlen(fileName3) + 2);
+
+    snprintf(filePath1, sizeof(filePath1), "%s/%s", sourceDir, fileName1);
+    snprintf(filePath2, sizeof(filePath2), "%s/%s", sourceDir, fileName2);
+    snprintf(fileSubPath3, sizeof(fileSubPath3), "%s/%s", sourceSubDir, fileName3);
 
     // Crear archivos de prueba y escribir algunos datos en ellos
     int fd1 = open(filePath1, O_CREAT | O_WRONLY, 0644);
@@ -152,8 +167,8 @@ void test_fullcopy()
 int main()
 {
     // Ejecutar el test
-    // test_readDirectory();
-    test_fullcopy();
+    test_readDirectory();
+    // test_fullcopy();
 
     printf("All tests passed!\n");
     return 0;

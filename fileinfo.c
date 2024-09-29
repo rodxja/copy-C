@@ -9,6 +9,32 @@ FileInfo *newFileInfo()
     return fileInfo;
 }
 
+void setOrigin(FileInfo *fileInfo, const char *origin)
+{
+    fileInfo->origin = malloc(strlen(origin) + 1);
+    strcpy(fileInfo->origin, origin);
+}
+
+void setDestination(FileInfo *fileInfo, const char *destination)
+{
+    fileInfo->destination = malloc(strlen(destination) + 1);
+    strcpy(fileInfo->destination, destination);
+}
+
+void freeFileInfo(FileInfo *fileInfo)
+{
+    free(fileInfo->origin);
+    free(fileInfo->destination);
+    free(fileInfo);
+}
+
+char *toStringFileInfo(FileInfo *fileInfo)
+{
+    char *str = malloc(256 * sizeof(char));
+    snprintf(str, 256, "FileInfo: %s -> %s. Size %ld.", fileInfo->origin, fileInfo->destination, fileInfo->size);
+    return str;
+}
+
 FileInfoBuffer *newFileInfoBuffer()
 {
     FileInfoBuffer *fileInfoBuffer = malloc(sizeof(FileInfoBuffer));
@@ -63,11 +89,4 @@ FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 int hasFiles(FileInfoBuffer *fileInfoBuffer)
 {
     return fileInfoBuffer->writeIndex != fileInfoBuffer->readIndex;
-}
-
-char *toStringFileInfo(FileInfo *fileInfo)
-{
-    char *str = malloc(MAX_NAME_LENGTH * 3 + 20);
-    snprintf(str, MAX_NAME_LENGTH * 3 + 20, "Origin: %s, Destination: %s, Size: %ld", fileInfo->origin, fileInfo->destination, fileInfo->size);
-    return str;
 }

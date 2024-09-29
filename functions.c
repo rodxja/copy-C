@@ -28,6 +28,8 @@ readDirectory reads the files in a directory and stores the information in the F
 */
 void readDirectory(const char *sourceDir, const char *destDir)
 {
+
+    printf("srcDirectory: '%s'. destDirectory: '%s'\n", sourceDir, destDir);
     DIR *dir;
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
@@ -42,8 +44,8 @@ void readDirectory(const char *sourceDir, const char *destDir)
 
     while ((entry = readdir(dir)) != NULL)
     {
-        char sourcePath[MAX_NAME_LENGTH];
-        char destPath[MAX_NAME_LENGTH];
+        char *sourcePath;
+        char *destPath;
 
         // Skip the current directory and the parent directory
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
@@ -51,26 +53,36 @@ void readDirectory(const char *sourceDir, const char *destDir)
             continue;
         }
 
-        // Create the full path for the source and destination files
-        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", sourceDir, entry->d_name);
-        snprintf(destPath, sizeof(destPath), "%s/%s", destDir, entry->d_name);
+        // Memory allocation for the paths
+        size_t srcLen = strlen(sourceDir) + strlen(entry->d_name) + 2;
+        sourcePath = (char *)malloc(srcLen * sizeof(char)); // +2 for the '/' and the null terminator
+        size_t destLen = strlen(destDir) + strlen(entry->d_name) + 2;
+        destPath = (char *)malloc(destLen * sizeof(char));
 
+        // set sourcePath and destPath
+        snprintf(sourcePath, srcLen, "%s/%s", sourceDir, entry->d_name);
+        snprintf(destPath, destLen, "%s/%s", destDir, entry->d_name);
         // Fill the buffer with the file information
+
         if (stat(sourcePath, &statbuf) == 0)
         {
             // Validate if the entry is a file
             if (S_ISREG(statbuf.st_mode))
             {
-                FileInfo *fileInfo = malloc(sizeof(FileInfo)); // Memory allocation for the struct
-                strcpy(fileInfo->origin, sourcePath);
-                strcpy(fileInfo->destination, destPath);
+                FileInfo *fileInfo = newFileInfo();
+                setOrigin(fileInfo, sourcePath);
+                setDestination(fileInfo, destPath);
                 fileInfo->size = statbuf.st_size;
 
                 writeFileInfo(FILE_INFO_BUFFER, fileInfo);
+
+                free(sourcePath);
+                free(destPath);
             }
             // Validate if the entry is a directory
             else if (S_ISDIR(statbuf.st_mode))
             {
+                printf("srcDirectory: %s. destDirectory: '%s'\n", sourcePath, destPath);
                 // Create the directory in the destination path
                 // !!! i think that readDirectory should not create directories
                 // mkdir(destPath, 0755);
@@ -103,7 +115,8 @@ void *copy(void *arg)
         FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
         // !!! i am not using size
 
-        snprintf(logInfo->name, MAX_NAME_LENGTH, "%s", fileInfo->destination);
+        // Set the name of the file to the logInfo
+        setName(logInfo, fileInfo->destination);
 
         // Copy the file
         int sourceFD = open(fileInfo->origin, O_RDONLY);
