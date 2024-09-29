@@ -41,12 +41,12 @@ int main(int argc, char *argv[])
     pthread_t threads[numThreads];
     int threadIds[numThreads]; // Array to store the thread ids, gives a number to each thread to identify them
 
-    startCopying();
+    startCopying(FILE_INFO_BUFFER);
     // create thread[0] for readDirectory
     threadIds[0] = 0;
     pthread_create(&threads[0], NULL, readDirectory, readDirectoryInfo);
 
-    startLogging();
+    startLogging(LOG_INFO_BUFFER);
     // Create the threads[1:n-2] for copy
     for (int i = 1; i < numThreads - 1; i++)
     {
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     int threadNumReadDirectory = (int)(size_t)resultReadDirectory;
     printf("ReadDirectory thread %d noticed that it has stopped.\n", threadNumReadDirectory);
 
-    stopCopying();
+    stopCopying(FILE_INFO_BUFFER);
 
     // Main thread waits for his son threads to finish, before he continues
     // NUM_THREADS for copy and 1 for writeLog
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     }
 
     // now that the threads have finished, we can stop the logging
-    stopLogging();
+    stopLogging(LOG_INFO_BUFFER);
 
     // wait for the writeLog thread to finish
     void *result;

@@ -6,11 +6,6 @@
 #include <stdlib.h>
 #include "macros.h"
 
-extern int keepLogging;
-
-void startLogging();
-void stopLogging();
-
 /*
 LogInfo stores the information of a file that was copied
 It has the name, the size in bytes and the duration in miliseconds
@@ -42,6 +37,11 @@ typedef struct
     LogInfo *buffer; // Dynamic buffer for structs
     int readIndex;
     int writeIndex;
+    // Variable to control the threads execution for logging
+    // 1: Keep logging, indicates that copy threads have not finished
+    // 0: Stop logging, indicates that copy threads have finished
+    // it will be set by the main thread once it processes all the files to fill in the buffer
+    int keepLogging;
 
 } LogInfoBuffer;
 
@@ -53,5 +53,8 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
 int hasLogInfo(LogInfoBuffer *logINfoBuffer);
 int isEmptyLogInfo(LogInfoBuffer *logInfoBuffer);
 int isFullLogInfo(LogInfoBuffer *logInfoBuffer);
+
+void startLogging(LogInfoBuffer *logInfoBuffer);
+void stopLogging(LogInfoBuffer *logInfoBuffer);
 
 #endif // LOGINFO_H

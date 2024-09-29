@@ -2,24 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Variable to control the threads execution for logging
-// 1: Keep logging, indicates that copy threads have not finished
-// 0: Stop logging, indicates that copy threads have finished
-// it will be set by the main thread once it processes all the files to fill in the buffer
-int keepLogging = 1;
-
-void startLogging()
-{
-    printf("Starting logging...\n");
-    keepLogging = 1;
-}
-
-void stopLogging()
-{
-    printf("Stopping logging...\n");
-    keepLogging = 0;
-}
-
 LogInfo *newLogInfo()
 {
     LogInfo *fileInfo = malloc(sizeof(LogInfo));
@@ -94,7 +76,7 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
 {
     pthread_mutex_lock(&logInfoBuffer->mutex); // Lock the mutex
     // wait while the buffer is empty and copy is still running (keepLogging == 1)
-    while (!hasLogInfo(logInfoBuffer) && keepLogging)
+    while (!hasLogInfo(logInfoBuffer) && logInfoBuffer->keepLogging)
     {
         printf("LogInfo Buffer is empty, waiting for a write\n");
         pthread_cond_wait(&logInfoBuffer->not_empty, &logInfoBuffer->mutex);
@@ -120,4 +102,14 @@ int isEmptyLogInfo(LogInfoBuffer *logInfoBuffer)
 int isFullLogInfo(LogInfoBuffer *logInfoBuffer)
 {
     return ((logInfoBuffer->writeIndex + 1) % BUFFER_SIZE) == logInfoBuffer->readIndex;
+}
+
+void startLogging(LogInfoBuffer *logInfoBuffer)
+{
+    logInfoBuffer->keepLogging = 1;
+}
+
+void stopLogging(LogInfoBuffer *logInfoBuffer)
+{
+    logInfoBuffer->keepLogging = 0;
 }
