@@ -286,7 +286,7 @@ void *writeLog(void *arg)
 
         fclose(csvFile);
 
-        freeLogInfo(logInfo);
+        // freeLogInfo(logInfo); // do not free for now
     }
 
     return NULL;

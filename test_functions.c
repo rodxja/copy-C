@@ -175,26 +175,33 @@ void test_fullcopy()
 void test_writeLog()
 {
     printf("Testing writeLog...\n");
+    // Inicializar buffers
     LOG_INFO_BUFFER = newLogInfoBuffer();
+
+    // inicializar un logInfo
     LogInfo *logInfo = newLogInfo();
     setName(logInfo, "testfile1.txt");
     logInfo->size = 13;
     logInfo->duration = 0.145;
-    writeLogInfo(LOG_INFO_BUFFER, logInfo);
-    LogInfo *logInfo2 = readLogInfo(LOG_INFO_BUFFER);
-    setName(logInfo2, "testfile1.txt");
+
+    printf("LogInfo: %s\n", toStringLogInfo(logInfo));
+
+    LogInfo *logInfo2 = newLogInfo();
+    setName(logInfo2, "testfile2.txt");
     logInfo2->size = 13;
     logInfo2->duration = 0.1;
 
     printf("LogInfo: %s\n", toStringLogInfo(logInfo2));
 
+    // agregar dos logInfo al buffer
+    writeLogInfo(LOG_INFO_BUFFER, logInfo);
+    writeLogInfo(LOG_INFO_BUFFER, logInfo2);
+
+    printf("Reading log info from buffer...\n");
     for (int i = 0; i < 2; i++)
     {
-        LogInfo *logInfo = newLogInfo();
-        setName(logInfo, "testfile1.txt");
-        logInfo->size = 13;
-        logInfo->duration = 0.145;
-        writeLogInfo(LOG_INFO_BUFFER, logInfo);
+        LogInfo logInfo = LOG_INFO_BUFFER->buffer[i];
+        printf("LogInfo: %s\n", toStringLogInfo(&logInfo));
     }
 
     int threadNum = 1;
@@ -202,8 +209,8 @@ void test_writeLog()
 
     printf("LogInfo: %s\n", toStringLogInfo(logInfo2));
 
-    //freeLogInfo(logInfo);
-    //freeLogInfo(logInfo2);
+    // freeLogInfo(logInfo);
+    // freeLogInfo(logInfo2);
     freeLogInfoBuffer(LOG_INFO_BUFFER);
 }
 
