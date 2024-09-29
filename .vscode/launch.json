@@ -48,7 +48,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/a.out", // Change this to your compiled program's path
-            "args": [],
+            "args": [
+                "./test",
+                "./copy/more"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

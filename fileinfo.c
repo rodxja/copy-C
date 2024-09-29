@@ -63,7 +63,7 @@ void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
     {
         pthread_cond_wait(&fileInfoBuffer->not_full, &fileInfoBuffer->mutex);
     }
-    printf("Writing file info (%s) to buffer %d\n", toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
+    printf("writing FileInfo '%s' into buffer[%d]\n", toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
     fileInfoBuffer->buffer[fileInfoBuffer->writeIndex] = *fileInfo;
     fileInfoBuffer->writeIndex = (fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE;
     pthread_cond_signal(&fileInfoBuffer->not_empty);
@@ -77,8 +77,8 @@ FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
     {
         pthread_cond_wait(&fileInfoBuffer->not_empty, &fileInfoBuffer->mutex);
     }
+    printf("reading FileInfo '%s' from buffer[%d]\n", toStringFileInfo(&fileInfoBuffer->buffer[fileInfoBuffer->readIndex]), fileInfoBuffer->readIndex);
     FileInfo *fileInfo = &fileInfoBuffer->buffer[fileInfoBuffer->readIndex];
-    printf("Reading file info (%s) from buffer %d\n", toStringFileInfo(fileInfo), fileInfoBuffer->readIndex);
     fileInfoBuffer->readIndex = (fileInfoBuffer->readIndex + 1) % BUFFER_SIZE;
     pthread_cond_signal(&fileInfoBuffer->not_full);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);

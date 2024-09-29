@@ -39,6 +39,8 @@ void readDirectory(const char *sourceDir, const char *destDir)
     struct dirent *entry; // Entries in the directory, files or subdirectories
     struct stat statbuf;  // Struct to store file information, like size
 
+    // create_directories_except_last(destDir);
+
     dir = opendir(sourceDir);
     if (dir == NULL)
     {
@@ -78,6 +80,7 @@ void readDirectory(const char *sourceDir, const char *destDir)
                 setDestination(fileInfo, destPath);
                 fileInfo->size = statbuf.st_size;
 
+                printf("'readDirectory' is ");
                 writeFileInfo(FILE_INFO_BUFFER, fileInfo);
 
                 free(sourcePath);
@@ -90,7 +93,7 @@ void readDirectory(const char *sourceDir, const char *destDir)
                 // Move the directory creation to the copy function
                 // Destination must not exists in order to copy the files
                 // printf("Creating directory '%s'.\n", destPath);
-                // mkdir(destPath, 0755);
+                mkdir(destPath, 0755);
 
                 // Recursive call to read the directory
                 readDirectory(sourcePath, destPath);
@@ -98,69 +101,6 @@ void readDirectory(const char *sourceDir, const char *destDir)
         }
     }
     closedir(dir);
-}
-
-// Create a directory
-int create_directory(const char *path)
-{
-    struct stat st;
-
-    // Check if the directory already exists
-    if (stat(path, &st) == 0 && S_ISDIR(st.st_mode))
-    {
-        return 0; // Directory already exists
-    }
-
-    // Create the directory
-    if (mkdir(path, 0755) == -1)
-    {
-        perror("mkdir failed");
-        return -1; // Error creating the directory
-    }
-
-    return 0; // Success
-}
-
-// create a directory for each part of the path except the file name
-void create_directories_except_last(const char *file_path)
-{
-    char path_copy[256];                              // Buffer to hold a copy of the file path
-    strncpy(path_copy, file_path, sizeof(path_copy)); // Copy the original path
-    path_copy[sizeof(path_copy) - 1] = '\0';          // Ensure null-termination
-
-    // Find the last '/' in the file path
-    char *last_slash = strrchr(path_copy, '/');
-    if (last_slash)
-    {
-        *last_slash = '\0'; // Terminate the string at the last slash to get the directory path
-    }
-    else
-    {
-        // If there is no '/', we can't create directories
-        return;
-    }
-
-    // Split the path by '/'
-    char *token = strtok(path_copy, "/");
-    char path[256] = ""; // To hold the current directory path
-
-    while (token != NULL)
-    {
-        // Append the next directory to the path
-        if (strlen(path) > 0)
-        {
-            strcat(path, "/");
-        }
-        strcat(path, token);
-
-        // Create the directory if it does not exist
-        create_directory(path);
-
-        token = strtok(NULL, "/"); // Get the next token
-    }
-
-    // Optionally, print the final directory path
-    printf("Directories created: %s\n", path);
 }
 
 // https://stackoverflow.com/questions/7267295/how-can-i-copy-a-file-from-one-directory-to-another-in-c-c
@@ -186,8 +126,8 @@ void *copy(void *arg)
 
         LogInfo *logInfo = newLogInfo();
 
+        printf("'Copy' Thread '%d' is ", threadNum);
         FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
-        // !!! i am not using size
 
         // Set the name of the file to the logInfo
         setName(logInfo, fileInfo->destination);
@@ -200,8 +140,8 @@ void *copy(void *arg)
             continue;
         }
 
-        printf("Thread '%d' is copying file '%s' to '%s'.\n", threadNum, fileInfo->origin, fileInfo->destination);
-        create_directories_except_last(fileInfo->destination);
+        // printf("Copying file '%s' to '%s' on thread '%d'.\n", fileInfo->origin, fileInfo->destination, threadNum);
+        // create_directories_except_last(fileInfo->destination);
 
         // ??? I THINK THIS DESTINATION SHOULD CHANGE
         int destFD = open(fileInfo->destination, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -221,7 +161,6 @@ void *copy(void *arg)
             ssize_t bytesRead = read(sourceFD, buffer, sizeof(buffer));
             if (bytesRead == 0)
             { // End of file
-                printf("End of file '%s' on thread '%d'.\n", fileInfo->origin, threadNum);
                 break;
             }
             if (bytesRead == -1)
@@ -234,7 +173,7 @@ void *copy(void *arg)
                 break;
             }
 
-            fileInfo->size += bytesRead; // add sizes
+            logInfo->size += bytesRead; // add sizes
 
             ssize_t bytesWritten = write(destFD, buffer, bytesRead);
             if (bytesWritten == -1)
@@ -256,8 +195,6 @@ void *copy(void *arg)
                 close(destFD);
                 break;
             }
-
-            printf("Thread '%d' copied %ld bytes from '%s' to '%s'.\n", threadNum, bytesRead, fileInfo->origin, fileInfo->destination);
         }
         clock_t end = clock();
 
@@ -267,6 +204,7 @@ void *copy(void *arg)
         close(destFD);
 
         // Lock the mutex to increment the filesCopied counter
+        printf("'Copy' Thread '%d' is ", threadNum);
         writeLogInfo(LOG_INFO_BUFFER, logInfo);
         // freeFileInfo(fileInfo);
     }
@@ -279,8 +217,6 @@ void *writeLog(void *arg)
 {
     int threadNum = *((int *)arg);
 
-    printf("Thread '%d' is writing log info...\n", threadNum);
-
     // keep loggin while there is log info to read or keepLogging is set to 1
     // keepLogging is set to 0 by the main thread once it finishes copying the files
     // then the LOG_INFO_BUFFER will have log info until the last thread reads the last log info
@@ -289,10 +225,9 @@ void *writeLog(void *arg)
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
     while (hasLogInfo(LOG_INFO_BUFFER) || keepLogging)
     {
-        printf("Thread '%d' is reading log info...\n", threadNum);
+        printf("'WriteLog' Thread '%d' is ", threadNum);
         LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
 
-        printf("Thread '%d' wrote log info: %s\n", threadNum, toStringLogInfo(logInfo));
         // create a csv. file with the log info
 
         FILE *csvFile = fopen("log.csv", "a");

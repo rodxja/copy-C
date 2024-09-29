@@ -54,7 +54,7 @@ void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer)
 /*
 writeFileInfo writes a FileInfo struct to the buffer
 */
-void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo) // !! it receives a pointer
+void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo)
 {
     pthread_mutex_lock(&logInfoBuffer->mutex); // Lock the mutex
 
@@ -63,7 +63,7 @@ void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo) // !! it recei
     {
         pthread_cond_wait(&logInfoBuffer->not_full, &logInfoBuffer->mutex);
     }
-    // !!! logInfo is being dereferenced
+    printf("writing LogInfo '%s' into buffer[%d]\n", logInfo->name, logInfoBuffer->writeIndex);
     logInfoBuffer->buffer[logInfoBuffer->writeIndex] = *logInfo;               // Write the struct to the buffer,
     logInfoBuffer->writeIndex = (logInfoBuffer->writeIndex + 1) % BUFFER_SIZE; // Increase the write index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
 
@@ -78,6 +78,7 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
     {
         pthread_cond_wait(&logInfoBuffer->not_empty, &logInfoBuffer->mutex);
     }
+    printf("reading LogInfo '%s' from buffer[%d]\n", logInfoBuffer->buffer[logInfoBuffer->readIndex].name, logInfoBuffer->readIndex);
     LogInfo *logInfo = &logInfoBuffer->buffer[logInfoBuffer->readIndex];
     logInfoBuffer->readIndex = (logInfoBuffer->readIndex + 1) % BUFFER_SIZE;
     pthread_cond_signal(&logInfoBuffer->not_full);

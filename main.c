@@ -32,7 +32,6 @@ int main(int argc, char *argv[])
     FILE_INFO_BUFFER = newFileInfoBuffer();
     LOG_INFO_BUFFER = newLogInfoBuffer();
 
-    printf("Copying files from '%s' to '%s' using %d threads.\n", sourceDir, destDir, numThreads - 1);
     // TODO :  handle as single thread
     readDirectory(sourceDir, destDir);
 
@@ -62,7 +61,7 @@ int main(int argc, char *argv[])
         void *result;
         pthread_join(threads[i], &result);
         int threadNum = (int)(size_t)result;
-        printf("Copy thread %d has stopped.\n", threadNum);
+        // printf("Copy thread %d has stopped.\n", threadNum);
     }
 
     // now that the threads have finished, we can stop the logging
@@ -72,10 +71,10 @@ int main(int argc, char *argv[])
     void *result;
     pthread_join(threads[numThreads - 1], &result);
     int threadNum = (int)(size_t)result;
-    printf("Log thread %d has stopped.\n", threadNum);
+    // printf("Log thread %d has stopped.\n", threadNum);
 
     return 0;
 }
 
 // gcc -o main main.c fileinfo.c loginfo.c functions.c -pthread
-// ./main ./test ./copy/more
+// ./main ./test ./destination

@@ -2,8 +2,8 @@
 #define MACROS_H
 
 // Define buffer size
-#define BUFFER_SIZE 5
+#define BUFFER_SIZE 10
 // #define MAX_NAME_LENGTH 100
-#define NUM_THREADS 3
+#define NUM_THREADS 5
 
 #endif // MACROS_H
