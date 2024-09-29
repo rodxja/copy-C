@@ -84,3 +84,8 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
     pthread_mutex_unlock(&logInfoBuffer->mutex);
     return logInfo;
 }
+
+int hasLogInfo(LogInfoBuffer *logInfoBuffer)
+{
+    return logInfoBuffer->writeIndex != logInfoBuffer->readIndex;
+}

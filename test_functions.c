@@ -172,12 +172,47 @@ void test_fullcopy()
     free(LOG_INFO_BUFFER);
 }
 
+void test_writeLog()
+{
+    printf("Testing writeLog...\n");
+    LOG_INFO_BUFFER = newLogInfoBuffer();
+    LogInfo *logInfo = newLogInfo();
+    setName(logInfo, "testfile1.txt");
+    logInfo->size = 13;
+    logInfo->duration = 0.145;
+    writeLogInfo(LOG_INFO_BUFFER, logInfo);
+    LogInfo *logInfo2 = readLogInfo(LOG_INFO_BUFFER);
+    setName(logInfo2, "testfile1.txt");
+    logInfo2->size = 13;
+    logInfo2->duration = 0.1;
+
+    printf("LogInfo: %s\n", toStringLogInfo(logInfo2));
+
+    for (int i = 0; i < 2; i++)
+    {
+        LogInfo *logInfo = newLogInfo();
+        setName(logInfo, "testfile1.txt");
+        logInfo->size = 13;
+        logInfo->duration = 0.145;
+        writeLogInfo(LOG_INFO_BUFFER, logInfo);
+    }
+
+    int threadNum = 1;
+    writeLog(&threadNum);
+
+    printf("LogInfo: %s\n", toStringLogInfo(logInfo2));
+
+    //freeLogInfo(logInfo);
+    //freeLogInfo(logInfo2);
+    freeLogInfoBuffer(LOG_INFO_BUFFER);
+}
+
 int main()
 {
     // Ejecutar el test
     // test_readDirectory();
-    test_fullcopy();
-
+    // test_fullcopy();
+    test_writeLog();
     printf("All tests passed!\n");
     return 0;
 }

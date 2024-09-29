@@ -163,7 +163,7 @@ void *copy(void *arg)
 
     // !!! evaluate other ways to stop the threads
     // copy while there are files to copy
-    while (hasFiles(FILE_INFO_BUFFER)) // change this keepCopying to a global variable in FILE_INFO_BUFFER
+    while (hasFileInfo(FILE_INFO_BUFFER)) // change this keepCopying to a global variable in FILE_INFO_BUFFER
     {
         if (FILE_INFO_BUFFER == NULL)
         {
@@ -255,6 +255,7 @@ void *copy(void *arg)
 
         // Lock the mutex to increment the filesCopied counter
         writeLogInfo(LOG_INFO_BUFFER, logInfo);
+        // freeFileInfo(fileInfo);
     }
 
     return NULL;
@@ -262,4 +263,31 @@ void *copy(void *arg)
 
 void *writeLog(void *arg)
 {
+    int threadNum = *((int *)arg);
+
+    printf("Thread '%d' is writing log info...\n", threadNum);
+
+    while (hasLogInfo(LOG_INFO_BUFFER))
+    {
+        printf("Thread '%d' is reading log info...\n", threadNum);
+        LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
+
+        printf("Thread '%d' wrote log info: %s\n", threadNum, toStringLogInfo(logInfo));
+        // create a csv. file with the log info
+
+        FILE *csvFile = fopen("log.csv", "a");
+        if (csvFile == NULL)
+        {
+            printf("Error opening log.csv file on thread '%d'.\n", threadNum);
+            continue;
+        }
+
+        fprintf(csvFile, "%s,%ld,%f\n", logInfo->name, logInfo->size, logInfo->duration);
+
+        fclose(csvFile);
+
+        freeLogInfo(logInfo);
+    }
+
+    return NULL;
 }

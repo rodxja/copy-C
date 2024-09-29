@@ -86,7 +86,7 @@ FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
 }
 
 // Check if there are files in the buffer, this is called by copy function in order to know if there are files to copy
-int hasFiles(FileInfoBuffer *fileInfoBuffer)
+int hasFileInfo(FileInfoBuffer *fileInfoBuffer)
 {
     return fileInfoBuffer->writeIndex != fileInfoBuffer->readIndex;
 }

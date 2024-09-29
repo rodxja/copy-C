@@ -45,5 +45,6 @@ LogInfoBuffer *newLogInfoBuffer();
 void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
 void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
+int hasLogInfo(LogInfoBuffer *logINfoBuffer);
 
 #endif // LOGINFO_H
