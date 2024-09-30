@@ -47,4 +47,4 @@ e.g.:
 
 - set a path for .csv file
 - add columns header to .csv
-- configure number of threads used in each step
+- configure number of threads used in each stage
