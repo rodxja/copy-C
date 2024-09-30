@@ -79,7 +79,7 @@ void *readDirectory(void *arg)
                 setDestination(fileInfo, destPath);
                 fileInfo->size = statbuf.st_size;
 
-                writeFileInfo(FILE_INFO_BUFFER, fileInfo, readDirectoryInfo->threadNum);
+                writeFileInfo(FILE_INFO_BUFFER, fileInfo);
 
                 free(sourcePath);
                 free(destPath);
@@ -130,7 +130,7 @@ void *copy(void *arg)
 
         LogInfo *logInfo = newLogInfo();
 
-        FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER, threadNum);
+        FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
         if (fileInfo == NULL)
         {
             continue;
@@ -211,10 +211,9 @@ void *copy(void *arg)
         close(destFD);
 
         // Lock the mutex to increment the filesCopied counter
-        writeLogInfo(LOG_INFO_BUFFER, logInfo, threadNum);
+        writeLogInfo(LOG_INFO_BUFFER, logInfo);
         // freeFileInfo(fileInfo);
     }
-    printf("Copy thread %d has stopped in function.\n", threadNum);
     return (void *)(size_t)threadNum;
 }
 
@@ -231,7 +230,7 @@ void *writeLog(void *arg)
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
     while (!isEmptyLogInfo(LOG_INFO_BUFFER) || LOG_INFO_BUFFER->keepLogging)
     {
-        LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER, threadNum);
+        LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
 
         if (logInfo == NULL)
         {
@@ -253,7 +252,5 @@ void *writeLog(void *arg)
 
         // freeLogInfo(logInfo); // do not free for now
     }
-
-    printf("Log thread %d has stopped in function.\n", threadNum);
     return (void *)(size_t)threadNum;
 }

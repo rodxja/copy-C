@@ -41,8 +41,8 @@ typedef struct
 // Function prototypes
 FileInfoBuffer *newFileInfoBuffer();
 void freeFileInfoBuffer(FileInfoBuffer *logInfoBuffer);
-void writeFileInfo(FileInfoBuffer *logInfoBuffer, FileInfo *logInfo, int threadNum);
-FileInfo *readFileInfo(FileInfoBuffer *logInfoBuffer, int threadNum);
+void writeFileInfo(FileInfoBuffer *logInfoBuffer, FileInfo *logInfo);
+FileInfo *readFileInfo(FileInfoBuffer *logInfoBuffer);
 int isEmptyFileInfo(FileInfoBuffer *fileInfoBuffer);
 int isFullFileInfo(FileInfoBuffer *fileInfoBuffer);
 
