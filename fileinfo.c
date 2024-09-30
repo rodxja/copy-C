@@ -57,43 +57,43 @@ void freeFileInfoBuffer(FileInfoBuffer *fileInfoBuffer)
     free(fileInfoBuffer);
 }
 
-void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo)
+void writeFileInfo(FileInfoBuffer *fileInfoBuffer, FileInfo *fileInfo, int threadNum)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
     // wait while the buffer is full
     while (isFullFileInfo(fileInfoBuffer))
     {
-        printf("FileInfo Buffer is full, waiting for a read\n");
+        printf("%d. FileInfo Buffer is full, waiting for a read\n", threadNum);
         pthread_cond_wait(&fileInfoBuffer->not_full, &fileInfoBuffer->mutex);
     }
-    printf("writing FileInfo '%s' into buffer[%d]\n", toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
+    printf("%d. writing FileInfo '%s' into buffer[%d]\n", threadNum, toStringFileInfo(fileInfo), fileInfoBuffer->writeIndex);
     fileInfoBuffer->buffer[fileInfoBuffer->writeIndex] = *fileInfo;
     fileInfoBuffer->writeIndex = (fileInfoBuffer->writeIndex + 1) % BUFFER_SIZE;
-    pthread_cond_signal(&fileInfoBuffer->not_empty);
+    pthread_cond_broadcast(&fileInfoBuffer->not_empty);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
 }
 
-FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer)
+FileInfo *readFileInfo(FileInfoBuffer *fileInfoBuffer, int threadNum)
 {
     pthread_mutex_lock(&fileInfoBuffer->mutex);
     // wait while the buffer is empty and readDirectory is still running (keepCopying == 1)
-    while (!hasFileInfo(fileInfoBuffer) && fileInfoBuffer->keepCopying)
+    while (isEmptyFileInfo(fileInfoBuffer) && fileInfoBuffer->keepCopying)
     {
-        printf("FileInfo Buffer is empty, waiting for a write\n");
+        printf("%d. FileInfo Buffer is empty, waiting for a write\n", threadNum);
         pthread_cond_wait(&fileInfoBuffer->not_empty, &fileInfoBuffer->mutex);
     }
-    printf("reading FileInfo '%s' from buffer[%d]\n", toStringFileInfo(&fileInfoBuffer->buffer[fileInfoBuffer->readIndex]), fileInfoBuffer->readIndex);
+    if (isEmptyFileInfo(fileInfoBuffer))
+    {
+        printf("%d. FileInfo Buffer is empty and keepCopying is 0, returning NULL\n", threadNum);
+        pthread_mutex_unlock(&fileInfoBuffer->mutex);
+        return NULL;
+    }
+    printf("%d. reading FileInfo '%s' from buffer[%d]\n", threadNum, toStringFileInfo(&fileInfoBuffer->buffer[fileInfoBuffer->readIndex]), fileInfoBuffer->readIndex);
     FileInfo *fileInfo = &fileInfoBuffer->buffer[fileInfoBuffer->readIndex];
     fileInfoBuffer->readIndex = (fileInfoBuffer->readIndex + 1) % BUFFER_SIZE;
-    pthread_cond_signal(&fileInfoBuffer->not_full);
+    pthread_cond_broadcast(&fileInfoBuffer->not_full);
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
     return fileInfo;
-}
-
-// Check if there are files in the buffer, this is called by copy function in order to know if there are files to copy
-int hasFileInfo(FileInfoBuffer *fileInfoBuffer)
-{
-    return fileInfoBuffer->writeIndex != fileInfoBuffer->readIndex;
 }
 
 int isEmptyFileInfo(FileInfoBuffer *fileInfoBuffer)
@@ -108,13 +108,17 @@ int isFullFileInfo(FileInfoBuffer *fileInfoBuffer)
 
 void startCopying(FileInfoBuffer *fileInfoBuffer)
 {
+    printf("Starting copying...\n");
     fileInfoBuffer->keepCopying = 1;
 }
 
 void stopCopying(FileInfoBuffer *fileInfoBuffer)
 {
+    printf("Stopping copying...\n");
     pthread_mutex_lock(&fileInfoBuffer->mutex);
-    pthread_cond_signal(&fileInfoBuffer->not_empty);
+    printf("Signaling not_empty\n");
+    pthread_cond_broadcast(&fileInfoBuffer->not_empty);
     fileInfoBuffer->keepCopying = 0;
     pthread_mutex_unlock(&fileInfoBuffer->mutex);
+    printf("Stopping finished is empty : %d\n", isEmptyFileInfo(fileInfoBuffer));
 }

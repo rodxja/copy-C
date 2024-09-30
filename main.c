@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     // Create the threads[1:n-2] for copy
     for (int i = 1; i < numThreads - 1; i++)
     {
+        printf("%d. Creating copy thread\n", i);
         threadIds[i] = i;
         pthread_create(&threads[i], NULL, copy, &threadIds[i]); // Missing the copyFiles function
     }
@@ -62,18 +63,19 @@ int main(int argc, char *argv[])
     void *resultReadDirectory;
     pthread_join(threads[0], &resultReadDirectory);
     int threadNumReadDirectory = (int)(size_t)resultReadDirectory;
-    printf("ReadDirectory thread %d noticed that it has stopped.\n", threadNumReadDirectory);
+    printf("%d. ReadDirectory thread noticed that it has stopped.\n", threadNumReadDirectory);
 
     stopCopying(FILE_INFO_BUFFER);
 
     // Main thread waits for his son threads to finish, before he continues
     // NUM_THREADS for copy and 1 for writeLog
-    for (int i = 1; i < NUM_THREADS; i++)
+    for (int i = 1; i < numThreads - 1; i++) // try this one
     {
+        printf("%d. Waiting for copy thread to finish.\n", i);
         void *result;
         pthread_join(threads[i], &result);
         int threadNum = (int)(size_t)result;
-        printf("Copy thread %d noticed that it has stopped.\n", threadNum);
+        printf("%d. Copy thread noticed that it has stopped.\n", threadNum);
     }
 
     // now that the threads have finished, we can stop the logging
@@ -83,7 +85,7 @@ int main(int argc, char *argv[])
     void *result;
     pthread_join(threads[numThreads - 1], &result);
     int threadNum = (int)(size_t)result;
-    printf("Log thread %d noticed that it has stopped.\n", threadNum);
+    printf("%d. Log thread noticed that it has stopped.\n", threadNum);
 
     return 0;
 }

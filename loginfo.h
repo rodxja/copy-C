@@ -48,9 +48,8 @@ typedef struct
 // Function prototypes
 LogInfoBuffer *newLogInfoBuffer();
 void freeLogInfoBuffer(LogInfoBuffer *logInfoBuffer);
-void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
-LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
-int hasLogInfo(LogInfoBuffer *logINfoBuffer);
+void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo, int threadNum);
+LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer, int threadNum);
 int isEmptyLogInfo(LogInfoBuffer *logInfoBuffer);
 int isFullLogInfo(LogInfoBuffer *logInfoBuffer);
 

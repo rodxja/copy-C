@@ -79,7 +79,7 @@ void *readDirectory(void *arg)
                 setDestination(fileInfo, destPath);
                 fileInfo->size = statbuf.st_size;
 
-                writeFileInfo(FILE_INFO_BUFFER, fileInfo);
+                writeFileInfo(FILE_INFO_BUFFER, fileInfo, readDirectoryInfo->threadNum);
 
                 free(sourcePath);
                 free(destPath);
@@ -120,7 +120,7 @@ void *copy(void *arg)
     // keepCopying is set to 0 by the main thread once it finishes reading the directory
     // then the FILE_INFO_BUFFER will have files info until the last thread reads the last file
     // and then the threads will stop one by one
-    while (hasFileInfo(FILE_INFO_BUFFER) || FILE_INFO_BUFFER->keepCopying)
+    while (!isEmptyFileInfo(FILE_INFO_BUFFER) || FILE_INFO_BUFFER->keepCopying)
     {
         if (FILE_INFO_BUFFER == NULL)
         {
@@ -130,7 +130,11 @@ void *copy(void *arg)
 
         LogInfo *logInfo = newLogInfo();
 
-        FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER);
+        FileInfo *fileInfo = readFileInfo(FILE_INFO_BUFFER, threadNum);
+        if (fileInfo == NULL)
+        {
+            continue;
+        }
 
         // Set the name of the file to the logInfo
         setName(logInfo, fileInfo->destination);
@@ -207,7 +211,7 @@ void *copy(void *arg)
         close(destFD);
 
         // Lock the mutex to increment the filesCopied counter
-        writeLogInfo(LOG_INFO_BUFFER, logInfo);
+        writeLogInfo(LOG_INFO_BUFFER, logInfo, threadNum);
         // freeFileInfo(fileInfo);
     }
     printf("Copy thread %d has stopped in function.\n", threadNum);
@@ -225,9 +229,14 @@ void *writeLog(void *arg)
     // and then the threads will stop one by one
 
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
-    while (hasLogInfo(LOG_INFO_BUFFER) || LOG_INFO_BUFFER->keepLogging)
+    while (!isEmptyLogInfo(LOG_INFO_BUFFER) || LOG_INFO_BUFFER->keepLogging)
     {
-        LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER);
+        LogInfo *logInfo = readLogInfo(LOG_INFO_BUFFER, threadNum);
+
+        if (logInfo == NULL)
+        {
+            continue;
+        }
 
         // create a csv. file with the log info
 

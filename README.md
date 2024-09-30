@@ -1,5 +1,9 @@
 # Copy
 
+preconditions:
+* destination_directory must exist
+* BUFFER_SIZE should not be 1
+
 command <origin_directory> <destination_directoty>
 
 origin_directory must exist and contain files
@@ -27,7 +31,20 @@ pending to fix
 
 tests:
     buffer of one item and copy n
+        buffer of one item does not work
+        change for more items than buffer spaces
+        it passes
     more threads than items to copy
+    buffer = 2
+    items = 9
+    threads = 20
+    it created a deadlock
+
+    i will use
+    buffer = 2, items = 3, threads = 5
+    it created a deadlock
+    the issue was the signal only noticed one thread
+    i needed to use pthread_cond_broadcast
 
 
 new error 
@@ -52,3 +69,12 @@ new issue
     it should not be read
 
     validate that there is data and return null
+
+    what did i do?
+    i validated that buffer was empty
+
+other issue
+    last item was log into log.csv
+    this was due to an incorrect for
+    for (int i = 1; i < NUM_THREADS; i++)
+    that was not waiting for all copy threads
