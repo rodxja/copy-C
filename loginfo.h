@@ -42,6 +42,7 @@ typedef struct
     // 0: Stop logging, indicates that copy threads have finished
     // it will be set by the main thread once it processes all the files to fill in the buffer
     int keepLogging;
+    int totalBytes;
 
 } LogInfoBuffer;
 

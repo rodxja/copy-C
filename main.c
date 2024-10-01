@@ -59,6 +59,8 @@ int main(int argc, char *argv[])
     pthread_create(&threads[0], NULL, readDirectory, readDirectoryInfo);
 
     startLogging(LOG_INFO_BUFFER);
+
+    clock_t start_copying = clock();
     // Create the threads[1:n-2] for copy
     for (int i = 1; i < numThreads - 1; i++)
     {
@@ -88,6 +90,14 @@ int main(int argc, char *argv[])
         pthread_join(threads[i], &result);
         int threadNum = (int)(size_t)result;
     }
+    clock_t end_copying = clock();
+
+    // TODO : handle this last log diffently
+    // before stop copying
+    LogInfo *logInfo = newLogInfo();
+    setName(logInfo, "Copying duration");
+    logInfo->size = LOG_INFO_BUFFER->totalBytes;
+    logInfo->duration = (double)(end_copying - start_copying) * 1000 / CLOCKS_PER_SEC;
 
     // now that the threads have finished, we can stop the logging
     stopLogging(LOG_INFO_BUFFER);
@@ -96,6 +106,16 @@ int main(int argc, char *argv[])
     void *result;
     pthread_join(threads[numThreads - 1], &result);
     int threadNum = (int)(size_t)result;
+
+    // log total duration
+    FILE *csvFile = fopen(logFileName, "a");
+    if (csvFile == NULL)
+    {
+        printf("Error opening %s file \n", logFileName);
+        return 0;
+    }
+    fprintf(csvFile, "%s", toCSVLogInfo(logInfo));
+    fclose(csvFile);
 
     printf("Copy finished.\n");
     return 0;

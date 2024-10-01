@@ -54,6 +54,7 @@ LogInfoBuffer *newLogInfoBuffer()
     logInfoBuffer->buffer = malloc(BUFFER_SIZE * sizeof(LogInfo));
     logInfoBuffer->readIndex = 0;
     logInfoBuffer->writeIndex = 0;
+    logInfoBuffer->totalBytes = 0;
     return logInfoBuffer;
 }
 
@@ -100,6 +101,7 @@ LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)
     }
     LogInfo *logInfo = &logInfoBuffer->buffer[logInfoBuffer->readIndex];
     logInfoBuffer->readIndex = (logInfoBuffer->readIndex + 1) % BUFFER_SIZE;
+    logInfoBuffer->totalBytes += logInfo->size;
     pthread_cond_broadcast(&logInfoBuffer->not_full);
     pthread_mutex_unlock(&logInfoBuffer->mutex);
     return logInfo;
