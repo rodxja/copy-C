@@ -1,6 +1,6 @@
 # File Copy Program
 
-C program that copies files from `<origin_directory>` to `<destination_directory>` using threads. It will create a <log_file> csv file that contains the stats of each copied file.
+C program that copies files from `<origin_directory>` to `<destination_directory>` using `<num_of_threads>` threads. It will create a `<log_file> `csv file that contains the stats of each copied file.
 
 ## Stages
 
