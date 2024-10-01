@@ -38,7 +38,7 @@ to run:
 e.g.:
 ```
     gcc -o main main.c fileinfo.c loginfo.c functions.c -pthread
-    ./main ./test ./destination
+    ./main ./test ./destination 20 ./log.csv
 ```
 
 ## Preconditions
