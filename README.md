@@ -11,13 +11,13 @@ The program has three main stages:
     - It will write each file into a file buffer.
 
 - **Copy**:
-    - `n` threads that will read from the file buffer.
+    - `<num_of_threads>` threads that will read from the file buffer.
     - Each thread will copy one file into `<destination_directory>`.
     - It will write the stats (name, size, time) of each copied file into a log buffer.
 
 - **Log**:
     - A single thread that will read from the log buffer.
-    - It will create the `log.csv`.
+    - It will create the `<log_file> `csv.
 
 ## Compilation
 
@@ -30,10 +30,10 @@ to run:
 ```
     <command_name> <origin_directory> <destination_directoty> <num_of_threads> <log_file>
 ```
-- <origin_directory> 
-- <destination_directoty> 
-- <num_of_threads> : number of threads created for copy stage
-- <log_file> : name of log file
+- `<origin_directory>` 
+- `<destination_directoty>` 
+- `<num_of_threads>` : number of threads created for copy stage
+- `<log_file>` : name of log file
 
 e.g.:
 ```
@@ -45,7 +45,7 @@ e.g.:
 
 - `<origin_directory>` must exist and contains some files
 - `<destination_directory>` must exist, without files in it
-- `BUFFER_SIZE` should not be 1
+- `<num_of_threads>` should not be 1
 
 ## TODO
 
