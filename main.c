@@ -12,20 +12,32 @@
 #include "loginfo.h"
 #include "functions.h"
 
+// it receives in argv[1] the source directory and in argv[2] the destination directory
+// in argv[3] the number of threads to create for copy
+// in argv[4] the name of the log file
+
 int main(int argc, char *argv[])
 {
-    if (argc != 3)
+    if (argc != 5)
     {
         fprintf(stderr, "Usage: %s <source_dir> <dest_dir>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
+    char *sourceDir = argv[1]; // Source directory where are contained the files to copy
+    char *destDir = argv[2];   // Destination directory where the files will be copied
+
+    char *num_threads_str = argv[3]; // Number of threads to create for copy
+    int NUM_THREADS = atoi(num_threads_str);
+
+    char *logFileName = argv[4]; // Name of the log file
+
+    // print all argv
+    printf("Source directory: %s, Destination directory %s, Threads %d, Log %s\n", sourceDir, destDir, NUM_THREADS, logFileName);
+
     // const int NUM_THREADS = 4; // Number of threads to create for copy
     // + 2 thread for readDirectory and writeLog
     int numThreads = NUM_THREADS + 2; // Number of threads to create
-
-    char *sourceDir = argv[1]; // Source directory where are contained the files to copy
-    char *destDir = argv[2];   // Destination directory where the files will be copied
 
     // BUFFERS
     FILE_INFO_BUFFER = newFileInfoBuffer();
@@ -56,7 +68,10 @@ int main(int argc, char *argv[])
 
     // Create the thread[n-1] for writeLog
     threadIds[numThreads - 1] = numThreads - 1;
-    pthread_create(&threads[numThreads - 1], NULL, writeLog, &threadIds[numThreads - 1]);
+    WriteLogInfo *writeLogInfo = newWriteLogInfo();
+    writeLogInfo->logFile = logFileName;
+    writeLogInfo->threadNum = numThreads - 1;
+    pthread_create(&threads[numThreads - 1], NULL, writeLog, writeLogInfo);
 
     // waiting for the readDirectory thread to finish
     void *resultReadDirectory;

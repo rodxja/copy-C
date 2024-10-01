@@ -31,6 +31,20 @@ char *toStringLogInfo(LogInfo *logInfo)
     return str;
 }
 
+char *toCSVHeaderLogInfo()
+{
+    char *str = malloc(256 * sizeof(char));
+    snprintf(str, 256, "Name,Size,Duration\n");
+    return str;
+}
+
+char *toCSVLogInfo(LogInfo *logInfo)
+{
+    char *str = malloc(256 * sizeof(char));
+    snprintf(str, 256, "%s,%ld,%.2f\n", logInfo->name, logInfo->size, logInfo->duration);
+    return str;
+}
+
 LogInfoBuffer *newLogInfoBuffer()
 {
     LogInfoBuffer *logInfoBuffer = malloc(sizeof(LogInfoBuffer));
@@ -67,7 +81,7 @@ void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo)
     logInfoBuffer->writeIndex = (logInfoBuffer->writeIndex + 1) % BUFFER_SIZE; // Increase the write index, and uses the modulo operator to keep it in the range [0, BUFFER_SIZE)
 
     pthread_cond_broadcast(&logInfoBuffer->not_empty); // Signal that a new item has been written
-    pthread_mutex_unlock(&logInfoBuffer->mutex);    // Unlock the mutex
+    pthread_mutex_unlock(&logInfoBuffer->mutex);       // Unlock the mutex
 }
 
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer)

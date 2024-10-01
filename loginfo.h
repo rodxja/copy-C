@@ -52,6 +52,8 @@ void writeLogInfo(LogInfoBuffer *logInfoBuffer, LogInfo *logInfo);
 LogInfo *readLogInfo(LogInfoBuffer *logInfoBuffer);
 int isEmptyLogInfo(LogInfoBuffer *logInfoBuffer);
 int isFullLogInfo(LogInfoBuffer *logInfoBuffer);
+char *toCSVHeaderLogInfo();
+char *toCSVLogInfo(LogInfo *logInfo);
 
 void startLogging(LogInfoBuffer *logInfoBuffer);
 void stopLogging(LogInfoBuffer *logInfoBuffer);

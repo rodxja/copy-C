@@ -20,6 +20,14 @@ typedef struct
 
 ReadDirectoryInfo *newReadDirectoryInfo();
 
+typedef struct
+{
+    char *logFile; // name of log file
+    int threadNum; // Field to store the thread number
+} WriteLogInfo;
+
+WriteLogInfo *newWriteLogInfo();
+
 // Function prototypes
 void *readDirectory(void *arg);
 void *copy(void *arg);

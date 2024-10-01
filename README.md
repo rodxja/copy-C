@@ -28,8 +28,12 @@ to compile:
 
 to run:
 ```
-    <command_name> <origin_directory> <destination_directoty>
+    <command_name> <origin_directory> <destination_directoty> <num_of_threads> <log_file>
 ```
+- <origin_directory> 
+- <destination_directoty> 
+- <num_of_threads> : number of threads created for copy stage
+- <log_file> : name of log file
 
 e.g.:
 ```
@@ -45,6 +49,4 @@ e.g.:
 
 ## TODO
 
-- set a path for .csv file
-- add columns header to .csv
 - configure number of threads used in each stage

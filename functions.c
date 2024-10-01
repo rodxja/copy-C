@@ -27,6 +27,14 @@ ReadDirectoryInfo *newReadDirectoryInfo()
     return readDirectoryInfo;
 }
 
+WriteLogInfo *newWriteLogInfo()
+{
+    WriteLogInfo *writeLogInfo = (WriteLogInfo *)malloc(sizeof(WriteLogInfo));
+    writeLogInfo->logFile = NULL;
+    writeLogInfo->threadNum = -1;
+    return writeLogInfo;
+}
+
 /*
 readDirectory reads the files in a directory and stores the information in the FILE_INFO_BUFFER
 */
@@ -220,12 +228,25 @@ void *copy(void *arg)
 // this function will be called by one thread
 void *writeLog(void *arg)
 {
-    int threadNum = *((int *)arg);
+
+    WriteLogInfo *writeLogInfo = (WriteLogInfo *)arg;
 
     // keep loggin while there is log info to read or keepLogging is set to 1
     // keepLogging is set to 0 by the main thread once it finishes copying the files
     // then the LOG_INFO_BUFFER will have log info until the last thread reads the last log info
     // and then the threads will stop one by one
+
+    FILE *csvFile = fopen(writeLogInfo->logFile, "a");
+    if (csvFile == NULL)
+    {
+        printf("Error opening log.csv file on thread '%d'.\n", writeLogInfo->threadNum);
+        return (void *)(size_t)writeLogInfo->threadNum;
+        ;
+    }
+
+    fprintf(csvFile, "%s", toCSVHeaderLogInfo());
+
+    fclose(csvFile);
 
     // this will not affect that much due that there will be n threads filling the buffer against one thread reading from it
     while (!isEmptyLogInfo(LOG_INFO_BUFFER) || LOG_INFO_BUFFER->keepLogging)
@@ -239,18 +260,18 @@ void *writeLog(void *arg)
 
         // create a csv. file with the log info
 
-        FILE *csvFile = fopen("log.csv", "a");
+        FILE *csvFile = fopen(writeLogInfo->logFile, "a");
         if (csvFile == NULL)
         {
-            printf("Error opening log.csv file on thread '%d'.\n", threadNum);
+            printf("Error opening log.csv file on thread '%d'.\n", writeLogInfo->threadNum);
             continue;
         }
 
-        fprintf(csvFile, "%s,%ld,%f\n", logInfo->name, logInfo->size, logInfo->duration);
+        fprintf(csvFile, "%s", toCSVLogInfo(logInfo));
 
         fclose(csvFile);
 
         // freeLogInfo(logInfo); // do not free for now
     }
-    return (void *)(size_t)threadNum;
+    return (void *)(size_t)writeLogInfo->threadNum;
 }
